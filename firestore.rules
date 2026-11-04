@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function isValidProduct(data) {
+      return data.title is string && data.title.size() <= 150 &&
+             data.category is string && data.category.size() <= 50 &&
+             data.price is number &&
+             data.reference is string && data.reference.size() <= 40 &&
+             data.inStock is bool;
+    }
+
+    function isValidStoreSettings(data) {
+      return data.storeName is string && data.storeName.size() <= 100 &&
+             data.whatsappNumber is string && data.whatsappNumber.size() <= 30 &&
+             data.address is string && data.address.size() <= 200;
+    }
+
+    // Public showroom catalog: anyone can browse products
+    match /products/{productId} {
+      allow read: if true;
+      allow create: if isValidId(productId) && isValidProduct(incoming());
+      allow update: if isValidId(productId) && isValidProduct(incoming());
+      allow delete: if isValidId(productId);
+    }
+
+    // Public store settings: anyone can view contact details and opening hours
+    match /storeSettings/{settingId} {
+      allow read: if true;
+      allow create, update: if isValidId(settingId) && isValidStoreSettings(incoming());
+      allow delete: if false;
+    }
+
+    // Default deny for anything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

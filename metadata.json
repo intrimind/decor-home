@@ -1,0 +1,6 @@
+{
+  "name": "Décor Home - Catalogue Showroom Décoration d'Intérieur",
+  "description": "Catalogue showroom haut de gamme et inspirations d'art de vivre pour Décor Home. Découvrez nos luminaires, céramiques, meubles et contactez-nous directement sur WhatsApp.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

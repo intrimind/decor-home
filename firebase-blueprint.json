@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Showroom interior decoration product",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 150 },
+        "category": { "type": "string", "maxLength": 50 },
+        "price": { "type": "number" },
+        "currency": { "type": "string", "maxLength": 10 },
+        "dimensions": { "type": "string", "maxLength": 100 },
+        "material": { "type": "string", "maxLength": 120 },
+        "description": { "type": "string", "maxLength": 2000 },
+        "badge": { "type": "string", "maxLength": 40 },
+        "inStock": { "type": "boolean" },
+        "reference": { "type": "string", "maxLength": 40 },
+        "images": { "type": "array" },
+        "instagramReelUrl": { "type": "string", "maxLength": 300 },
+        "tiktokVideoUrl": { "type": "string", "maxLength": 300 },
+        "featured": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 50 },
+        "updatedAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["title", "category", "price", "reference", "inStock"]
+    },
+    "StoreSettings": {
+      "title": "StoreSettings",
+      "description": "Store contact, opening hours and social media links",
+      "type": "object",
+      "properties": {
+        "storeName": { "type": "string", "maxLength": 100 },
+        "tagline": { "type": "string", "maxLength": 150 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "whatsappNumber": { "type": "string", "maxLength": 30 },
+        "whatsappPreFilledMessage": { "type": "string", "maxLength": 300 },
+        "instagramUrl": { "type": "string", "maxLength": 300 },
+        "tiktokUrl": { "type": "string", "maxLength": 300 },
+        "address": { "type": "string", "maxLength": 200 },
+        "city": { "type": "string", "maxLength": 100 },
+        "hoursWeekday": { "type": "string", "maxLength": 100 },
+        "hoursWeekend": { "type": "string", "maxLength": 100 },
+        "googleMapsUrl": { "type": "string", "maxLength": 500 }
+      },
+      "required": ["storeName", "whatsappNumber", "address"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Showroom catalog items for public display and back-office management"
+    },
+    "/storeSettings/{settingId}": {
+      "schema": "StoreSettings",
+      "description": "Showroom address, hours, and social media contact links"
+    }
+  }
+}
