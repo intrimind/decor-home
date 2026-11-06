@@ -75,20 +75,52 @@ export async function testConnection(): Promise<boolean> {
 // LocalStorage cache keys
 const LOCAL_PRODUCTS_KEY = 'decor_home_products_v1';
 const LOCAL_SETTINGS_KEY = 'decor_home_settings_v1';
+const LOCAL_DELETED_PRODUCTS_KEY = 'decor_home_deleted_products_v1';
+const LOCAL_PRODUCTS_INIT_KEY = 'decor_home_products_initialized_v1';
 
-export function getLocalProducts(): Product[] {
+export function getDeletedProductIds(): string[] {
   try {
-    const raw = localStorage.getItem(LOCAL_PRODUCTS_KEY);
+    const raw = localStorage.getItem(LOCAL_DELETED_PRODUCTS_KEY);
     if (raw) return JSON.parse(raw);
   } catch {
     // ignore
   }
-  return INITIAL_PRODUCTS;
+  return [];
+}
+
+export function addDeletedProductId(id: string): void {
+  try {
+    const current = getDeletedProductIds();
+    if (!current.includes(id)) {
+      current.push(id);
+      localStorage.setItem(LOCAL_DELETED_PRODUCTS_KEY, JSON.stringify(current));
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export function getLocalProducts(): Product[] {
+  const deletedIds = getDeletedProductIds();
+  try {
+    const raw = localStorage.getItem(LOCAL_PRODUCTS_KEY);
+    if (raw !== null) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.filter(p => !deletedIds.includes(p.id));
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return INITIAL_PRODUCTS.filter(p => !deletedIds.includes(p.id));
 }
 
 export function saveLocalProducts(products: Product[]): void {
+  const deletedIds = getDeletedProductIds();
+  const filtered = products.filter(p => !deletedIds.includes(p.id));
   try {
-    localStorage.setItem(LOCAL_PRODUCTS_KEY, JSON.stringify(products));
+    localStorage.setItem(LOCAL_PRODUCTS_KEY, JSON.stringify(filtered));
   } catch {
     // ignore
   }
@@ -129,22 +161,37 @@ export function subscribeToProducts(
     collection(db, colPath),
     async (snapshot) => {
       hasReceivedSnapshot = true;
+      const deletedIds = getDeletedProductIds();
+      const hasInitialized = localStorage.getItem(LOCAL_PRODUCTS_INIT_KEY) === 'true';
+
       if (snapshot.empty) {
-        // If firestore is empty, seed it with the initial 20 showroom products
-        console.log("Seeding Firestore with initial showroom catalog...");
-        try {
-          for (const item of INITIAL_PRODUCTS) {
-            await setDoc(doc(db, colPath, item.id), item);
+        if (!hasInitialized) {
+          localStorage.setItem(LOCAL_PRODUCTS_INIT_KEY, 'true');
+          const seedItems = INITIAL_PRODUCTS.filter(p => !deletedIds.includes(p.id));
+          try {
+            for (const item of seedItems) {
+              await setDoc(doc(db, colPath, item.id), item);
+            }
+          } catch (e) {
+            console.warn("Could not seed firestore automatically:", e);
           }
-        } catch (e) {
-          console.warn("Could not seed firestore automatically:", e);
+          onUpdate(seedItems);
+          saveLocalProducts(seedItems);
+        } else {
+          // If already initialized and empty, owner intentionally deleted all products
+          onUpdate([]);
+          saveLocalProducts([]);
         }
-        onUpdate(INITIAL_PRODUCTS);
-        saveLocalProducts(INITIAL_PRODUCTS);
       } else {
+        localStorage.setItem(LOCAL_PRODUCTS_INIT_KEY, 'true');
         const loaded: Product[] = [];
         snapshot.forEach((d) => {
-          loaded.push({ id: d.id, ...d.data() } as Product);
+          if (!deletedIds.includes(d.id)) {
+            loaded.push({ id: d.id, ...d.data() } as Product);
+          } else {
+            // Clean up from Firestore if marked deleted locally
+            deleteDoc(doc(db, colPath, d.id)).catch(() => {});
+          }
         });
         onUpdate(loaded);
         saveLocalProducts(loaded);
@@ -186,6 +233,7 @@ export async function saveProductToFirestore(product: Product): Promise<void> {
 
 // Delete Product
 export async function deleteProductFromFirestore(productId: string): Promise<void> {
+  addDeletedProductId(productId);
   const current = getLocalProducts().filter(p => p.id !== productId);
   saveLocalProducts(current);
 
@@ -239,43 +287,54 @@ export async function saveStoreSettingsToFirestore(settings: StoreSettings): Pro
   }
 }
 
-// Reset Catalog and Lookbooks to initial items
-export async function resetCatalogToDefault(): Promise<void> {
-  saveLocalProducts(INITIAL_PRODUCTS);
-  saveLocalStoreSettings(DEFAULT_STORE_SETTINGS);
-  saveLocalLookbooks(LOOKBOOK_SCENES);
-  try {
-    for (const item of INITIAL_PRODUCTS) {
-      await setDoc(doc(db, 'products', item.id), item);
-    }
-    for (const scene of LOOKBOOK_SCENES) {
-      await setDoc(doc(db, 'lookbooks', scene.id), scene);
-    }
-    await setDoc(doc(db, 'storeSettings', 'main'), DEFAULT_STORE_SETTINGS);
-  } catch (e) {
-    console.warn("Could not reset on remote firestore:", e);
-  }
-}
-
 // LocalStorage cache key for Lookbooks
 const LOCAL_LOOKBOOKS_KEY = 'decor_home_lookbooks_v1';
+const LOCAL_DELETED_LOOKBOOKS_KEY = 'decor_home_deleted_lookbooks_v1';
+const LOCAL_LOOKBOOKS_INIT_KEY = 'decor_home_lookbooks_initialized_v1';
 
-export function getLocalLookbooks(): LookbookScene[] {
+export function getDeletedLookbookIds(): string[] {
   try {
-    const raw = localStorage.getItem(LOCAL_LOOKBOOKS_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    const raw = localStorage.getItem(LOCAL_DELETED_LOOKBOOKS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+export function addDeletedLookbookId(id: string): void {
+  try {
+    const current = getDeletedLookbookIds();
+    if (!current.includes(id)) {
+      current.push(id);
+      localStorage.setItem(LOCAL_DELETED_LOOKBOOKS_KEY, JSON.stringify(current));
     }
   } catch {
     // ignore
   }
-  return LOOKBOOK_SCENES;
+}
+
+export function getLocalLookbooks(): LookbookScene[] {
+  const deletedIds = getDeletedLookbookIds();
+  try {
+    const raw = localStorage.getItem(LOCAL_LOOKBOOKS_KEY);
+    if (raw !== null) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.filter(s => !deletedIds.includes(s.id));
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return LOOKBOOK_SCENES.filter(s => !deletedIds.includes(s.id));
 }
 
 export function saveLocalLookbooks(scenes: LookbookScene[]): void {
+  const deletedIds = getDeletedLookbookIds();
+  const filtered = scenes.filter(s => !deletedIds.includes(s.id));
   try {
-    localStorage.setItem(LOCAL_LOOKBOOKS_KEY, JSON.stringify(scenes));
+    localStorage.setItem(LOCAL_LOOKBOOKS_KEY, JSON.stringify(filtered));
   } catch {
     // ignore
   }
@@ -292,21 +351,37 @@ export function subscribeToLookbooks(
     collection(db, colPath),
     async (snapshot) => {
       hasReceivedSnapshot = true;
+      const deletedIds = getDeletedLookbookIds();
+      const hasInitialized = localStorage.getItem(LOCAL_LOOKBOOKS_INIT_KEY) === 'true';
+
       if (snapshot.empty) {
-        console.log("Seeding Firestore with initial showroom lookbooks...");
-        try {
-          for (const item of LOOKBOOK_SCENES) {
-            await setDoc(doc(db, colPath, item.id), item);
+        if (!hasInitialized) {
+          localStorage.setItem(LOCAL_LOOKBOOKS_INIT_KEY, 'true');
+          const seedItems = LOOKBOOK_SCENES.filter(s => !deletedIds.includes(s.id));
+          try {
+            for (const item of seedItems) {
+              await setDoc(doc(db, colPath, item.id), item);
+            }
+          } catch (e) {
+            console.warn("Could not seed lookbooks in firestore:", e);
           }
-        } catch (e) {
-          console.warn("Could not seed lookbooks in firestore:", e);
+          onUpdate(seedItems);
+          saveLocalLookbooks(seedItems);
+        } else {
+          // If already initialized and empty, owner intentionally deleted all lookbooks
+          onUpdate([]);
+          saveLocalLookbooks([]);
         }
-        onUpdate(LOOKBOOK_SCENES);
-        saveLocalLookbooks(LOOKBOOK_SCENES);
       } else {
+        localStorage.setItem(LOCAL_LOOKBOOKS_INIT_KEY, 'true');
         const loaded: LookbookScene[] = [];
         snapshot.forEach((d) => {
-          loaded.push({ id: d.id, ...d.data() } as LookbookScene);
+          if (!deletedIds.includes(d.id)) {
+            loaded.push({ id: d.id, ...d.data() } as LookbookScene);
+          } else {
+            // Clean up from Firestore if it was deleted
+            deleteDoc(doc(db, colPath, d.id)).catch(() => {});
+          }
         });
         onUpdate(loaded);
         saveLocalLookbooks(loaded);
@@ -325,6 +400,14 @@ export function subscribeToLookbooks(
 
 // Save or Update Lookbook
 export async function saveLookbookToFirestore(scene: LookbookScene): Promise<void> {
+  // If re-saving a previously deleted ID, remove it from deleted blacklist
+  try {
+    const deletedIds = getDeletedLookbookIds().filter(id => id !== scene.id);
+    localStorage.setItem(LOCAL_DELETED_LOOKBOOKS_KEY, JSON.stringify(deletedIds));
+  } catch {
+    // ignore
+  }
+
   const current = getLocalLookbooks();
   const idx = current.findIndex(s => s.id === scene.id);
   if (idx >= 0) {
@@ -343,6 +426,7 @@ export async function saveLookbookToFirestore(scene: LookbookScene): Promise<voi
 
 // Delete Lookbook
 export async function deleteLookbookFromFirestore(sceneId: string): Promise<void> {
+  addDeletedLookbookId(sceneId);
   const current = getLocalLookbooks().filter(s => s.id !== sceneId);
   saveLocalLookbooks(current);
 
@@ -350,6 +434,32 @@ export async function deleteLookbookFromFirestore(sceneId: string): Promise<void
     await deleteDoc(doc(db, 'lookbooks', sceneId));
   } catch (error) {
     console.warn("Firestore lookbook delete warning:", error);
+  }
+}
+
+// Reset Catalog and Lookbooks to initial items
+export async function resetCatalogToDefault(): Promise<void> {
+  try {
+    localStorage.removeItem(LOCAL_DELETED_PRODUCTS_KEY);
+    localStorage.removeItem(LOCAL_DELETED_LOOKBOOKS_KEY);
+    localStorage.removeItem(LOCAL_PRODUCTS_INIT_KEY);
+    localStorage.removeItem(LOCAL_LOOKBOOKS_INIT_KEY);
+  } catch {
+    // ignore
+  }
+  saveLocalProducts(INITIAL_PRODUCTS);
+  saveLocalStoreSettings(DEFAULT_STORE_SETTINGS);
+  saveLocalLookbooks(LOOKBOOK_SCENES);
+  try {
+    for (const item of INITIAL_PRODUCTS) {
+      await setDoc(doc(db, 'products', item.id), item);
+    }
+    for (const scene of LOOKBOOK_SCENES) {
+      await setDoc(doc(db, 'lookbooks', scene.id), scene);
+    }
+    await setDoc(doc(db, 'storeSettings', 'main'), DEFAULT_STORE_SETTINGS);
+  } catch (e) {
+    console.warn("Could not reset on remote firestore:", e);
   }
 }
 

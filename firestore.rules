@@ -39,6 +39,17 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Public showroom lookbooks and interactive scenes
+    match /lookbooks/{lookbookId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(lookbookId);
+    }
+
+    // Health check and connection validation
+    match /test/{testId} {
+      allow read, write: if true;
+    }
+
     // Default deny for anything else
     match /{document=**} {
       allow read, write: if false;
