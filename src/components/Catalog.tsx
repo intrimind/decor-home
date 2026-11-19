@@ -253,7 +253,7 @@ export const Catalog: React.FC<CatalogProps> = ({
         {/* Product Grid: 3-column desktop / 2-column mobile */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {filteredProducts.map((product) => {
-            const primaryImage = product.images?.[0] || '/src/assets/images/hero_decor_home_salon_1793732697943.jpg';
+            const primaryImage = product.images?.[0] || '/assets/images/hero_decor_home_salon_1793732697943.jpg';
             const secondaryImage = product.images?.[1] || primaryImage;
 
             return (

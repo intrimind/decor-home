@@ -100,6 +100,27 @@ export function addDeletedProductId(id: string): void {
   }
 }
 
+function normalizeAssetUrl(url?: string): string {
+  if (!url) return '';
+  return url.replace('/src/assets/images/', '/assets/images/');
+}
+
+function normalizeProduct(product: Product): Product {
+  return {
+    ...product,
+    images: (product.images || []).map(img => normalizeAssetUrl(img))
+  };
+}
+
+function normalizeStoreSettings(settings: StoreSettings): StoreSettings {
+  return {
+    ...DEFAULT_STORE_SETTINGS,
+    ...settings,
+    heroImage: normalizeAssetUrl(settings.heroImage) || DEFAULT_STORE_SETTINGS.heroImage,
+    showroomImage: normalizeAssetUrl(settings.showroomImage) || DEFAULT_STORE_SETTINGS.showroomImage
+  };
+}
+
 export function getLocalProducts(): Product[] {
   const deletedIds = getDeletedProductIds();
   try {
@@ -107,7 +128,7 @@ export function getLocalProducts(): Product[] {
     if (raw !== null) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return parsed.filter(p => !deletedIds.includes(p.id));
+        return parsed.filter(p => !deletedIds.includes(p.id)).map(normalizeProduct);
       }
     }
   } catch {
@@ -118,7 +139,7 @@ export function getLocalProducts(): Product[] {
 
 export function saveLocalProducts(products: Product[]): void {
   const deletedIds = getDeletedProductIds();
-  const filtered = products.filter(p => !deletedIds.includes(p.id));
+  const filtered = products.filter(p => !deletedIds.includes(p.id)).map(normalizeProduct);
   try {
     localStorage.setItem(LOCAL_PRODUCTS_KEY, JSON.stringify(filtered));
   } catch {
@@ -132,7 +153,7 @@ export function getLocalStoreSettings(): StoreSettings {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed.address && !parsed.address.includes('Bir Mourad')) {
-        return parsed;
+        return normalizeStoreSettings(parsed);
       }
     }
   } catch {
@@ -143,7 +164,7 @@ export function getLocalStoreSettings(): StoreSettings {
 
 export function saveLocalStoreSettings(settings: StoreSettings): void {
   try {
-    localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(settings));
+    localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(normalizeStoreSettings(settings)));
   } catch {
     // ignore
   }
@@ -187,7 +208,7 @@ export function subscribeToProducts(
         const loaded: Product[] = [];
         snapshot.forEach((d) => {
           if (!deletedIds.includes(d.id)) {
-            loaded.push({ id: d.id, ...d.data() } as Product);
+            loaded.push(normalizeProduct({ id: d.id, ...d.data() } as Product));
           } else {
             // Clean up from Firestore if marked deleted locally
             deleteDoc(doc(db, colPath, d.id)).catch(() => {});
@@ -213,19 +234,20 @@ export function subscribeToProducts(
 
 // Save or Update Product
 export async function saveProductToFirestore(product: Product): Promise<void> {
+  const normalized = normalizeProduct(product);
   // Always update local storage first so the UI updates immediately
   const current = getLocalProducts();
-  const idx = current.findIndex(p => p.id === product.id);
+  const idx = current.findIndex(p => p.id === normalized.id);
   if (idx >= 0) {
-    current[idx] = product;
+    current[idx] = normalized;
   } else {
-    current.unshift(product);
+    current.unshift(normalized);
   }
   saveLocalProducts(current);
 
   // Sync with Firestore asynchronously
   try {
-    await setDoc(doc(db, 'products', product.id), product);
+    await setDoc(doc(db, 'products', normalized.id), normalized);
   } catch (error) {
     console.warn("Firestore sync warning (changes preserved locally in browser):", error);
   }
@@ -248,15 +270,15 @@ export async function deleteProductFromFirestore(productId: string): Promise<voi
 export function subscribeToStoreSettings(
   onUpdate: (settings: StoreSettings) => void
 ): Unsubscribe {
-  const docPath = 'storeSettings/main';
   const unsubscribe = onSnapshot(
     doc(db, 'storeSettings', 'main'),
     async (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data() as StoreSettings;
         if (data.address && !data.address.includes('Bir Mourad')) {
-          onUpdate(data);
-          saveLocalStoreSettings(data);
+          const normalized = normalizeStoreSettings(data);
+          onUpdate(normalized);
+          saveLocalStoreSettings(normalized);
           return;
         }
       }
@@ -279,11 +301,13 @@ export function subscribeToStoreSettings(
 
 // Save Store Settings
 export async function saveStoreSettingsToFirestore(settings: StoreSettings): Promise<void> {
-  saveLocalStoreSettings(settings);
+  const normalized = normalizeStoreSettings(settings);
+  saveLocalStoreSettings(normalized);
   try {
-    await setDoc(doc(db, 'storeSettings', 'main'), settings);
+    await setDoc(doc(db, 'storeSettings', 'main'), normalized);
   } catch (error) {
     console.warn("Firestore store settings sync warning:", error);
+    throw error;
   }
 }
 
@@ -314,6 +338,13 @@ export function addDeletedLookbookId(id: string): void {
   }
 }
 
+function normalizeLookbook(scene: LookbookScene): LookbookScene {
+  return {
+    ...scene,
+    image: normalizeAssetUrl(scene.image)
+  };
+}
+
 export function getLocalLookbooks(): LookbookScene[] {
   const deletedIds = getDeletedLookbookIds();
   try {
@@ -321,7 +352,7 @@ export function getLocalLookbooks(): LookbookScene[] {
     if (raw !== null) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return parsed.filter(s => !deletedIds.includes(s.id));
+        return parsed.filter(s => !deletedIds.includes(s.id)).map(normalizeLookbook);
       }
     }
   } catch {
@@ -332,7 +363,7 @@ export function getLocalLookbooks(): LookbookScene[] {
 
 export function saveLocalLookbooks(scenes: LookbookScene[]): void {
   const deletedIds = getDeletedLookbookIds();
-  const filtered = scenes.filter(s => !deletedIds.includes(s.id));
+  const filtered = scenes.filter(s => !deletedIds.includes(s.id)).map(normalizeLookbook);
   try {
     localStorage.setItem(LOCAL_LOOKBOOKS_KEY, JSON.stringify(filtered));
   } catch {
@@ -377,7 +408,7 @@ export function subscribeToLookbooks(
         const loaded: LookbookScene[] = [];
         snapshot.forEach((d) => {
           if (!deletedIds.includes(d.id)) {
-            loaded.push({ id: d.id, ...d.data() } as LookbookScene);
+            loaded.push(normalizeLookbook({ id: d.id, ...d.data() } as LookbookScene));
           } else {
             // Clean up from Firestore if it was deleted
             deleteDoc(doc(db, colPath, d.id)).catch(() => {});

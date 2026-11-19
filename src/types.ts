@@ -61,4 +61,6 @@ export interface StoreSettings {
   hoursWeekday: string;
   hoursWeekend: string;
   googleMapsUrl: string;
+  heroImage?: string;
+  showroomImage?: string;
 }

@@ -118,6 +118,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
   // Store Settings Form State
   const [settingsForm, setSettingsForm] = useState<StoreSettings>({ ...settings });
+  const showroomFileInputRef = useRef<HTMLInputElement>(null);
+  const heroFileInputRef = useRef<HTMLInputElement>(null);
+  const [isProcessingSiteImage, setIsProcessingSiteImage] = useState<'hero' | 'showroom' | null>(null);
 
   useEffect(() => {
     setSettingsForm({ ...settings });
@@ -286,7 +289,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         reference: productForm.reference || `DH-${Date.now().toString().slice(-4)}`,
         images: productForm.images && productForm.images.length > 0 
           ? productForm.images 
-          : ['/src/assets/images/hero_decor_home_salon_1793732697943.jpg'],
+          : ['/assets/images/hero_decor_home_salon_1793732697943.jpg'],
         instagramReelUrl: productForm.instagramReelUrl || '',
         tiktokVideoUrl: productForm.tiktokVideoUrl || '',
         featured: productForm.featured || false,
@@ -335,12 +338,37 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     }
   };
 
+  // Upload site image (Hero or Showroom) from PC or Mobile
+  const handleSiteImageFile = async (target: 'hero' | 'showroom', files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setIsProcessingSiteImage(target);
+    try {
+      const processed = await processImageFile(files[0], 1440, 960, 0.8);
+      setSettingsForm(prev => ({
+        ...prev,
+        [target === 'hero' ? 'heroImage' : 'showroomImage']: processed
+      }));
+      showNotification(
+        target === 'showroom'
+          ? 'Photo du Showroom importée ! Cliquez sur Enregistrer pour publier.'
+          : 'Photo d\'accueil importée ! Cliquez sur Enregistrer pour publier.'
+      );
+    } catch (err) {
+      console.error(err);
+      showNotification("Impossible de traiter l'image sélectionnée", 'error');
+    } finally {
+      setIsProcessingSiteImage(null);
+      if (showroomFileInputRef.current) showroomFileInputRef.current.value = '';
+      if (heroFileInputRef.current) heroFileInputRef.current.value = '';
+    }
+  };
+
   // Save store settings
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await saveStoreSettingsToFirestore(settingsForm);
-      showNotification('Coordonnées de la boutique enregistrées avec succès !');
+      showNotification('Coordonnées et images enregistrées avec succès !');
       onRefreshData();
     } catch (err) {
       console.error(err);
@@ -888,7 +916,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                                   <td className="py-3 px-4">
                                     <div className="relative w-14 h-12 rounded-lg overflow-hidden border border-[#E8E2D8] bg-[#FAF8F5]">
                                       <img
-                                        src={item.images?.[0] || '/src/assets/images/hero_decor_home_salon_1793732697943.jpg'}
+                                        src={item.images?.[0] || '/assets/images/hero_decor_home_salon_1793732697943.jpg'}
                                         alt={item.title}
                                         referrerPolicy="no-referrer"
                                         className="w-full h-full object-cover"
@@ -1969,6 +1997,122 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       />
                     </div>
 
+                  </div>
+
+                  {/* Site Visuals: Showroom & Hero Background Images */}
+                  <div className="pt-6 border-t border-[#E8E2D8] space-y-5">
+                    <div>
+                      <h3 className="font-serif text-lg font-bold text-[#1C1917]">
+                        Images d'Arrière-Plan du Site
+                      </h3>
+                      <p className="text-xs text-[#78716C] mt-0.5">
+                        Personnalisez la photo affichée dans « Showroom Décor Home Béjaïa » et la bannière principale d'accueil depuis votre ordinateur ou téléphone.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      {/* Showroom Section Image */}
+                      <div className="p-4 rounded-xl border border-[#E8E2D8] bg-[#FAF8F5] space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-[#1C1917] uppercase tracking-wider">
+                            Photo Showroom Béjaïa
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setSettingsForm({ ...settingsForm, showroomImage: '/assets/images/hero_decor_home_salon_1793732697943.jpg' })}
+                            className="text-[11px] text-[#78716C] hover:text-[#1C1917] underline cursor-pointer"
+                          >
+                            Image par défaut
+                          </button>
+                        </div>
+
+                        <div className="relative aspect-[16/9] rounded-lg overflow-hidden border border-[#E8E2D8] bg-[#1C1917]">
+                          <img
+                            src={(settingsForm.showroomImage || '/assets/images/hero_decor_home_salon_1793732697943.jpg').replace('/src/assets/images/', '/assets/images/')}
+                            alt="Aperçu Showroom Béjaïa"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+
+                        <input
+                          ref={showroomFileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleSiteImageFile('showroom', e.target.files)}
+                          className="hidden"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => showroomFileInputRef.current?.click()}
+                          disabled={isProcessingSiteImage === 'showroom'}
+                          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-[#EFECE6] border border-[#E8E2D8] text-xs font-semibold text-[#1C1917] rounded-lg transition-colors cursor-pointer"
+                        >
+                          {isProcessingSiteImage === 'showroom' ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Traitement en cours...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-3.5 h-3.5 text-[#9C5432]" />
+                              <span>Choisir une image (PC / Mobile)</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Hero Banner Image */}
+                      <div className="p-4 rounded-xl border border-[#E8E2D8] bg-[#FAF8F5] space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-[#1C1917] uppercase tracking-wider">
+                            Photo Bannière d'Accueil
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setSettingsForm({ ...settingsForm, heroImage: '/assets/images/hero_decor_home_salon_1793732697943.jpg' })}
+                            className="text-[11px] text-[#78716C] hover:text-[#1C1917] underline cursor-pointer"
+                          >
+                            Image par défaut
+                          </button>
+                        </div>
+
+                        <div className="relative aspect-[16/9] rounded-lg overflow-hidden border border-[#E8E2D8] bg-[#1C1917]">
+                          <img
+                            src={(settingsForm.heroImage || '/assets/images/hero_decor_home_salon_1793732697943.jpg').replace('/src/assets/images/', '/assets/images/')}
+                            alt="Aperçu Bannière d'Accueil"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+
+                        <input
+                          ref={heroFileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleSiteImageFile('hero', e.target.files)}
+                          className="hidden"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => heroFileInputRef.current?.click()}
+                          disabled={isProcessingSiteImage === 'hero'}
+                          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-[#EFECE6] border border-[#E8E2D8] text-xs font-semibold text-[#1C1917] rounded-lg transition-colors cursor-pointer"
+                        >
+                          {isProcessingSiteImage === 'hero' ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Traitement en cours...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-3.5 h-3.5 text-[#9C5432]" />
+                              <span>Choisir une image (PC / Mobile)</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="pt-6 border-t border-[#E8E2D8] flex justify-end">

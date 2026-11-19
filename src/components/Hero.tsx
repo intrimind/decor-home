@@ -23,7 +23,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onExploreClick }) => {
           {/* Background Image with Scrim */}
           <div className="absolute inset-0 z-0">
             <img
-              src="/src/assets/images/hero_decor_home_salon_1793732697943.jpg"
+              src={(settings.heroImage || '/assets/images/hero_decor_home_salon_1793732697943.jpg').replace('/src/assets/images/', '/assets/images/')}
               alt="Salon showroom Décor Home"
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover object-center filter brightness-[0.92] transition-transform duration-1000 scale-100 hover:scale-105"

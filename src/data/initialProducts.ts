@@ -12,7 +12,9 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   city: 'Béjaïa, Algérie',
   hoursWeekday: 'Lundi au Samedi : 10h00 – 19h30',
   hoursWeekend: 'Vendredi : 15h00 – 20h00 · Dimanche : Fermé',
-  googleMapsUrl: 'https://maps.app.goo.gl/Hprk7FDSz44Mxfpk9'
+  googleMapsUrl: 'https://maps.app.goo.gl/Hprk7FDSz44Mxfpk9',
+  heroImage: '/assets/images/hero_decor_home_salon_1793732697943.jpg',
+  showroomImage: '/assets/images/hero_decor_home_salon_1793732697943.jpg'
 };
 
 export const INITIAL_PRODUCTS: Product[] = [
@@ -29,7 +31,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     inStock: true,
     reference: 'DH-LUM-01',
     images: [
-      '/src/assets/images/hero_decor_home_salon_1793732697943.jpg',
+      '/assets/images/hero_decor_home_salon_1793732697943.jpg',
       'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=1000&q=80',
       'https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?auto=format&fit=crop&w=1000&q=80'
     ],
@@ -50,7 +52,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     inStock: true,
     reference: 'DH-MEUB-01',
     images: [
-      '/src/assets/images/hero_decor_home_salon_1793732697943.jpg',
+      '/assets/images/hero_decor_home_salon_1793732697943.jpg',
       'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1000&q=80',
       'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=1000&q=80'
     ],
@@ -88,7 +90,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     inStock: true,
     reference: 'DH-MIR-01',
     images: [
-      '/src/assets/images/lookbook_entree_epuree_1793732699251.jpg',
+      '/assets/images/lookbook_entree_epuree_1793732699251.jpg',
       'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1000&q=80'
     ],
     instagramReelUrl: 'https://instagram.com/reel/decorhome_miroir_onde',
@@ -108,7 +110,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     inStock: true,
     reference: 'DH-VAS-01',
     images: [
-      '/src/assets/images/lookbook_entree_epuree_1793732699251.jpg',
+      '/assets/images/lookbook_entree_epuree_1793732699251.jpg',
       'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=1000&q=80',
       'https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?auto=format&fit=crop&w=1000&q=80'
     ],
@@ -127,7 +129,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     inStock: true,
     reference: 'DH-MEUB-03',
     images: [
-      '/src/assets/images/lookbook_entree_epuree_1793732699251.jpg',
+      '/assets/images/lookbook_entree_epuree_1793732699251.jpg',
       'https://images.unsplash.com/photo-1533090161767-e6ffed986b88?auto=format&fit=crop&w=1000&q=80'
     ]
   },
@@ -144,7 +146,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     inStock: true,
     reference: 'DH-LUM-02',
     images: [
-      '/src/assets/images/lookbook_salle_manger_1793732699636.jpg',
+      '/assets/images/lookbook_salle_manger_1793732699636.jpg',
       'https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?auto=format&fit=crop&w=1000&q=80'
     ],
     instagramReelUrl: 'https://instagram.com/reel/decorhome_lustre_cosmos'
@@ -162,7 +164,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     inStock: true,
     reference: 'DH-MEUB-04',
     images: [
-      '/src/assets/images/lookbook_salle_manger_1793732699636.jpg',
+      '/assets/images/lookbook_salle_manger_1793732699636.jpg',
       'https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&w=1000&q=80'
     ]
   },
@@ -179,7 +181,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     inStock: true,
     reference: 'DH-VAS-02',
     images: [
-      '/src/assets/images/lookbook_salle_manger_1793732699636.jpg',
+      '/assets/images/lookbook_salle_manger_1793732699636.jpg',
       'https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?auto=format&fit=crop&w=1000&q=80'
     ]
   },
@@ -196,7 +198,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     inStock: true,
     reference: 'DH-MEUB-05',
     images: [
-      '/src/assets/images/lookbook_coin_lecture_1793732699005.jpg',
+      '/assets/images/lookbook_coin_lecture_1793732699005.jpg',
       'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=1000&q=80'
     ],
     instagramReelUrl: 'https://instagram.com/reel/decorhome_fauteuil_auguste'
@@ -214,7 +216,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     inStock: true,
     reference: 'DH-LUM-03',
     images: [
-      '/src/assets/images/lookbook_coin_lecture_1793732699005.jpg',
+      '/assets/images/lookbook_coin_lecture_1793732699005.jpg',
       'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=1000&q=80'
     ]
   },
@@ -231,7 +233,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     inStock: true,
     reference: 'DH-MEUB-06',
     images: [
-      '/src/assets/images/lookbook_salon_japandi_1793732698392.jpg',
+      '/assets/images/lookbook_salon_japandi_1793732698392.jpg',
       'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=1000&q=80'
     ]
   },
@@ -248,7 +250,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     inStock: true,
     reference: 'DH-TAP-01',
     images: [
-      '/src/assets/images/lookbook_salon_japandi_1793732698392.jpg',
+      '/assets/images/lookbook_salon_japandi_1793732698392.jpg',
       'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&w=1000&q=80'
     ]
   },
@@ -265,7 +267,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     inStock: true,
     reference: 'DH-MUR-01',
     images: [
-      '/src/assets/images/lookbook_salon_japandi_1793732698392.jpg',
+      '/assets/images/lookbook_salon_japandi_1793732698392.jpg',
       'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1000&q=80'
     ],
     instagramReelUrl: 'https://instagram.com/reel/decorhome_tableau_silence'
@@ -335,7 +337,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     inStock: true,
     reference: 'DH-TEX-01',
     images: [
-      '/src/assets/images/lookbook_coin_lecture_1793732699005.jpg',
+      '/assets/images/lookbook_coin_lecture_1793732699005.jpg',
       'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=1000&q=80'
     ]
   },
@@ -380,7 +382,7 @@ export const LOOKBOOK_SCENES: LookbookScene[] = [
     title: 'Salon Japandi & Matières Vivantes',
     subtitle: 'Équilibre entre minimalisme nordique et sérénité japonaise',
     description: 'Une composition apaisante qui met à l’honneur le chêne cannelé, la céramique artisanale et les textures minérales pour créer un sanctuaire chaleureux.',
-    image: '/src/assets/images/lookbook_salon_japandi_1793732698392.jpg',
+    image: '/assets/images/lookbook_salon_japandi_1793732698392.jpg',
     productIds: ['dh-meub-06', 'dh-tap-01', 'dh-mur-01', 'dh-vas-03'],
     hotspots: [
       { id: 'hs-1', x: 50, y: 64, productId: 'dh-meub-06', label: 'Enfilade Cannelée Nara' },
@@ -394,7 +396,7 @@ export const LOOKBOOK_SCENES: LookbookScene[] = [
     title: 'Le Coin Lecture & Velours Cognac',
     subtitle: 'Une atmosphère feutrée digne des grands appartements d’auteurs',
     description: 'Associez la chaleur du velours ambré au reflet noble du laiton brossé pour faire de votre instant lecture un rituel d’exception.',
-    image: '/src/assets/images/lookbook_coin_lecture_1793732699005.jpg',
+    image: '/assets/images/lookbook_coin_lecture_1793732699005.jpg',
     productIds: ['dh-meub-05', 'dh-lum-03', 'dh-tap-02'],
     hotspots: [
       { id: 'hs-5', x: 62, y: 65, productId: 'dh-meub-05', label: 'Fauteuil Velours Auguste' },
@@ -407,7 +409,7 @@ export const LOOKBOOK_SCENES: LookbookScene[] = [
     title: 'La Salle à Manger Réception & Verre Fumé',
     subtitle: 'La convivialité sublimée par l’artisanat d’art',
     description: 'Au cœur de la pièce, la table ronde en chêne massif cannelé dialogue avec le lustre monumental aux 12 sphères de verre soufflé fumé.',
-    image: '/src/assets/images/lookbook_salle_manger_1793732699636.jpg',
+    image: '/assets/images/lookbook_salle_manger_1793732699636.jpg',
     productIds: ['dh-lum-02', 'dh-meub-04', 'dh-art-01'],
     hotspots: [
       { id: 'hs-8', x: 50, y: 18, productId: 'dh-lum-02', label: 'Lustre Boules Verre Cosmos 12' },
@@ -420,7 +422,7 @@ export const LOOKBOOK_SCENES: LookbookScene[] = [
     title: 'L’Entrée Minérale & Miroir Organique',
     subtitle: 'Première impression inoubliable dès le seuil franchi',
     description: 'Une console monobloc en travertin romain associée au grand miroir ondulé en laiton pour capter la lumière et donner le ton du raffinement.',
-    image: '/src/assets/images/lookbook_entree_epuree_1793732699251.jpg',
+    image: '/assets/images/lookbook_entree_epuree_1793732699251.jpg',
     productIds: ['dh-mir-01', 'dh-meub-03', 'dh-vas-01'],
     hotspots: [
       { id: 'hs-11', x: 58, y: 32, productId: 'dh-mir-01', label: 'Miroir Organique Onde' },

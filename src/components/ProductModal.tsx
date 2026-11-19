@@ -38,7 +38,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
   const images = product.images && product.images.length > 0
     ? product.images
-    : ['/src/assets/images/hero_decor_home_salon_1793732697943.jpg'];
+    : ['/assets/images/hero_decor_home_salon_1793732697943.jpg'];
 
   const cleanWhatsapp = settings.whatsappNumber.replace(/[^0-9]/g, '');
   const whatsappPreFilledText = `Bonjour Décor Home, je souhaite des informations et connaître la disponibilité pour le produit : "${product.title}" (Réf: ${product.reference}, Tarif: ${new Intl.NumberFormat('fr-FR').format(product.price)} DZD). Est-il visible au showroom ?`;

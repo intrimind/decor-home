@@ -150,9 +150,9 @@ export const ShowroomSection: React.FC<ShowroomSectionProps> = ({ settings }) =>
           <div className="lg:col-span-7 space-y-6 flex flex-col justify-between">
             
             {/* Showroom Atmosphere Banner */}
-            <div className="relative rounded-2xl overflow-hidden aspect-[16/9] shadow-md border border-[#E8E2D8] group">
+            <div className="relative rounded-2xl overflow-hidden aspect-[16/9] shadow-md border border-[#E8E2D8] group bg-[#1C1917]">
               <img
-                src="/src/assets/images/hero_decor_home_salon_1793732697943.jpg"
+                src={(settings.showroomImage || '/assets/images/hero_decor_home_salon_1793732697943.jpg').replace('/src/assets/images/', '/assets/images/')}
                 alt="Showroom Décor Home Béjaïa"
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700"

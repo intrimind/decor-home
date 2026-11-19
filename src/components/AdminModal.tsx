@@ -230,7 +230,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
         reference: productForm.reference || `DH-${Date.now().toString().slice(-4)}`,
         images: productForm.images && productForm.images.length > 0 
           ? productForm.images 
-          : ['/src/assets/images/hero_decor_home_salon_1793732697943.jpg'],
+          : ['/assets/images/hero_decor_home_salon_1793732697943.jpg'],
         instagramReelUrl: productForm.instagramReelUrl || '',
         tiktokVideoUrl: productForm.tiktokVideoUrl || '',
         featured: productForm.featured || false,
@@ -460,7 +460,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                             <tr key={item.id} className="hover:bg-[#FAF8F5] transition-colors">
                               <td className="py-2.5 px-4">
                                 <img
-                                  src={item.images?.[0] || '/src/assets/images/hero_decor_home_salon_1793732697943.jpg'}
+                                  src={item.images?.[0] || '/assets/images/hero_decor_home_salon_1793732697943.jpg'}
                                   alt={item.title}
                                   referrerPolicy="no-referrer"
                                   className="w-12 h-10 object-cover rounded bg-[#FAF8F5] border border-[#E8E2D8]"
