@@ -546,13 +546,20 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     }
 
     try {
+      const mergedProductIds = Array.from(
+        new Set([
+          ...(lookbookForm.productIds || []),
+          ...(lookbookForm.hotspots || []).map((h) => h.productId).filter(Boolean),
+        ])
+      );
+
       const finalScene: LookbookScene = {
         id: editingLookbook ? editingLookbook.id : `scene-${Date.now()}`,
         title: lookbookForm.title.trim(),
         subtitle: lookbookForm.subtitle?.trim() || 'Ambiance Décor Home',
         description: lookbookForm.description?.trim() || 'Mise en scène exclusive au showroom Décor Home.',
         image: lookbookForm.image,
-        productIds: lookbookForm.productIds || [],
+        productIds: mergedProductIds,
         hotspots: lookbookForm.hotspots || []
       };
 
@@ -1663,7 +1670,17 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                                     <div className="w-7 h-7 rounded-full bg-white text-[#9C5432] shadow-lg flex items-center justify-center border-2 border-[#9C5432] font-bold text-xs">
                                       <Tag className="w-3.5 h-3.5" />
                                     </div>
-                                    <div className="hidden group-hover/pin:block absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-[#1C1917] text-white text-[11px] py-1 px-2.5 rounded shadow-lg whitespace-nowrap z-30">
+                                    <div
+                                      className={`hidden group-hover/pin:block absolute bg-[#1C1917] text-white text-[11px] py-1 px-2.5 rounded shadow-lg whitespace-nowrap max-w-[200px] truncate z-30 ${
+                                        hs.y < 25 ? 'top-full mt-2' : 'bottom-full mb-2'
+                                      } ${
+                                        hs.x < 25
+                                          ? 'left-0'
+                                          : hs.x > 75
+                                          ? 'right-0'
+                                          : 'left-1/2 -translate-x-1/2'
+                                      }`}
+                                    >
                                       {hs.label || prod?.title}
                                     </div>
                                   </div>

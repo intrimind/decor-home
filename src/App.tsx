@@ -50,7 +50,7 @@ export default function App() {
     testConnection();
 
     const unsubProducts = subscribeToProducts((updated) => {
-      if (updated && updated.length > 0) {
+      if (Array.isArray(updated)) {
         setProducts(updated);
       }
     });
@@ -62,7 +62,7 @@ export default function App() {
     });
 
     const unsubLookbooks = subscribeToLookbooks((updated) => {
-      if (updated && updated.length > 0) {
+      if (Array.isArray(updated)) {
         setLookbooks(updated);
       }
     });

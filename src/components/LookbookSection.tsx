@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Sparkles, Eye, ArrowRight, Tag } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Sparkles, ArrowRight, Tag } from 'lucide-react';
 import { LookbookScene, Product } from '../types';
 import { LOOKBOOK_SCENES } from '../data/initialProducts';
 
@@ -14,20 +14,90 @@ export const LookbookSection: React.FC<LookbookSectionProps> = ({
   products,
   onSelectProduct,
 }) => {
-  const allScenes = (scenes && scenes.length > 0) ? scenes : LOOKBOOK_SCENES;
-  const [activeSceneId, setActiveSceneId] = useState<string>(allScenes[0]?.id || 'scene-salon-japandi');
+  const allScenes = scenes !== undefined ? scenes : LOOKBOOK_SCENES;
+  const [activeSceneId, setActiveSceneId] = useState<string>(allScenes[0]?.id || '');
   const [hoveredHotspotId, setHoveredHotspotId] = useState<string | null>(null);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const activeScene = allScenes.find((s) => s.id === activeSceneId) || allScenes[0] || LOOKBOOK_SCENES[0];
+  // Keep activeSceneId valid when scenes load or change from Firestore
+  useEffect(() => {
+    if (allScenes.length > 0 && !allScenes.some((s) => s.id === activeSceneId)) {
+      setActiveSceneId(allScenes[0].id);
+      setHoveredHotspotId(null);
+    }
+  }, [allScenes, activeSceneId]);
 
-  // Resolve products featured in this scene
-  const sceneProducts = (activeScene.productIds || [])
-    .map((id) => products.find((p) => p.id === id))
+  // Clear timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    };
+  }, []);
+
+  if (allScenes.length === 0) {
+    return null;
+  }
+
+  const activeScene = allScenes.find((s) => s.id === activeSceneId) || allScenes[0];
+
+  // Resolve a product by ID, reference, or label
+  const resolveProduct = (productId?: string, fallbackLabel?: string): Product | undefined => {
+    if (productId) {
+      const byId = products.find((p) => p.id === productId);
+      if (byId) return byId;
+      const byRef = products.find((p) => p.reference.toLowerCase() === productId.toLowerCase());
+      if (byRef) return byRef;
+    }
+    if (fallbackLabel) {
+      const norm = fallbackLabel.trim().toLowerCase();
+      const byTitle = products.find(
+        (p) => p.title.trim().toLowerCase() === norm || p.title.toLowerCase().includes(norm)
+      );
+      if (byTitle) return byTitle;
+    }
+    return undefined;
+  };
+
+  // Combine explicitly associated productIds AND all hotspot productIds (deduplicated)
+  const combinedProductIds = Array.from(
+    new Set([
+      ...(activeScene.productIds || []),
+      ...(activeScene.hotspots || []).map((h) => h.productId).filter(Boolean),
+    ])
+  );
+
+  const sceneProducts = combinedProductIds
+    .map((id) => {
+      const matchingHotspot = (activeScene.hotspots || []).find((h) => h.productId === id);
+      return resolveProduct(id, matchingHotspot?.label);
+    })
     .filter((p): p is Product => Boolean(p));
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR').format(price) + ' DZD';
   };
+
+  const handleOpenHotspot = (id: string) => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+    setHoveredHotspotId(id);
+  };
+
+  const handleScheduleCloseHotspot = () => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+    }
+    closeTimeoutRef.current = setTimeout(() => {
+      setHoveredHotspotId(null);
+    }, 150);
+  };
+
+  const hoveredHotspot = (activeScene.hotspots || []).find((h) => h.id === hoveredHotspotId) || null;
+  const hoveredProduct = hoveredHotspot
+    ? resolveProduct(hoveredHotspot.productId, hoveredHotspot.label)
+    : undefined;
 
   return (
     <section id="lookbook" className="py-20 bg-[#F5F2EB] border-t border-b border-[#E8E2D8] scroll-mt-20">
@@ -44,7 +114,7 @@ export const LookbookSection: React.FC<LookbookSectionProps> = ({
               Le Lookbook Décor Home
             </h2>
             <p className="text-xs sm:text-sm text-[#78716C] leading-relaxed">
-              Explorez nos ambiances signatures photographiées au showroom. Cliquez sur les pastilles interactives sur l'image pour découvrir chaque objet qui compose la scène.
+              Explorez nos ambiances signatures photographiées au showroom. Survolez ou cliquez sur les pastilles interactives sur l'image pour découvrir chaque objet qui compose la scène.
             </p>
           </div>
 
@@ -58,7 +128,7 @@ export const LookbookSection: React.FC<LookbookSectionProps> = ({
                   setHoveredHotspotId(null);
                 }}
                 className={`px-4 py-2.5 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap transition-colors cursor-pointer shrink-0 ${
-                  activeSceneId === scene.id
+                  activeScene.id === scene.id
                     ? 'bg-[#1C1917] text-white shadow-sm'
                     : 'bg-white text-[#57534E] hover:text-[#1C1917] hover:bg-[#EFECE6] border border-[#E8E2D8]'
                 }`}
@@ -74,7 +144,12 @@ export const LookbookSection: React.FC<LookbookSectionProps> = ({
           
           {/* Main Visual with Interactive Hotspots (Left 8 cols) */}
           <div className="lg:col-span-8 relative rounded-2xl overflow-hidden bg-[#1C1917] shadow-xl border border-[#E8E2D8]">
-            <div className="relative aspect-[4/3] w-full">
+            <div
+              className="relative aspect-[4/3] w-full"
+              onClick={() => {
+                if (hoveredHotspotId) setHoveredHotspotId(null);
+              }}
+            >
               <img
                 src={activeScene.image}
                 alt={activeScene.title}
@@ -84,66 +159,118 @@ export const LookbookSection: React.FC<LookbookSectionProps> = ({
 
               {/* Interactive Hotspot Pins ("Shop the Look") */}
               {(activeScene.hotspots || []).map((hs) => {
-                const targetProduct = products.find((p) => p.id === hs.productId);
+                const targetProduct = resolveProduct(hs.productId, hs.label);
                 const isHovered = hoveredHotspotId === hs.id;
 
                 return (
                   <div
                     key={hs.id}
                     style={{ left: `${hs.x}%`, top: `${hs.y}%` }}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 z-20 group"
-                    onMouseEnter={() => setHoveredHotspotId(hs.id)}
-                    onMouseLeave={() => setHoveredHotspotId(null)}
+                    className={`absolute -translate-x-1/2 -translate-y-1/2 ${
+                      isHovered ? 'z-40' : 'z-20'
+                    }`}
+                    onMouseEnter={() => handleOpenHotspot(hs.id)}
+                    onMouseLeave={handleScheduleCloseHotspot}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     {/* Hotspot Pulsing Indicator */}
                     <button
+                      type="button"
                       onClick={() => {
-                        if (targetProduct) onSelectProduct(targetProduct);
+                        const supportsHover =
+                          typeof window !== 'undefined' &&
+                          window.matchMedia('(hover: hover)').matches;
+                        if (supportsHover) {
+                          if (targetProduct) {
+                            onSelectProduct(targetProduct);
+                          } else {
+                            handleOpenHotspot(hs.id);
+                          }
+                        } else {
+                          // Touch devices: first tap shows card, second tap opens modal
+                          if (isHovered && targetProduct) {
+                            onSelectProduct(targetProduct);
+                          } else {
+                            handleOpenHotspot(hs.id);
+                          }
+                        }
                       }}
-                      className="relative w-8 h-8 rounded-full bg-white/90 backdrop-blur-md text-[#1C1917] shadow-lg flex items-center justify-center hover:scale-110 hover:bg-[#9C5432] hover:text-white transition-all cursor-pointer"
+                      className={`relative w-8 h-8 rounded-full shadow-lg flex items-center justify-center transition-all cursor-pointer ${
+                        isHovered
+                          ? 'scale-110 bg-[#9C5432] text-white'
+                          : 'bg-white/95 backdrop-blur-md text-[#1C1917] hover:scale-110 hover:bg-[#9C5432] hover:text-white'
+                      }`}
                       aria-label={hs.label}
                     >
-                      <span className="absolute inset-0 rounded-full bg-white animate-ping opacity-40" />
-                      <Tag className="w-3.5 h-3.5" />
+                      <span className="absolute inset-0 rounded-full bg-white animate-ping opacity-40 pointer-events-none" />
+                      <Tag className="w-3.5 h-3.5 relative z-10" />
                     </button>
-
-                    {/* Hover Floating Glass Card */}
-                    {isHovered && targetProduct && (
-                      <div className="absolute left-1/2 bottom-full mb-3 -translate-x-1/2 w-64 bg-white/95 backdrop-blur-md rounded-xl p-3 shadow-2xl border border-[#E8E2D8] text-left animate-in fade-in slide-in-from-bottom-2 duration-150 z-30">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={targetProduct.images?.[0]}
-                            alt={targetProduct.title}
-                            referrerPolicy="no-referrer"
-                            className="w-14 h-14 object-cover rounded-md bg-[#FAF8F5]"
-                          />
-                          <div className="overflow-hidden">
-                            <span className="text-[10px] text-[#9C5432] font-semibold uppercase tracking-wider block">
-                              Shop the Look
-                            </span>
-                            <h4 className="text-xs font-medium text-[#1C1917] truncate">
-                              {targetProduct.title}
-                            </h4>
-                            <p className="text-xs font-bold font-mono text-[#1C1917] mt-0.5">
-                              {formatPrice(targetProduct.price)}
-                            </p>
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={() => onSelectProduct(targetProduct)}
-                          className="mt-2.5 w-full py-1.5 bg-[#1C1917] hover:bg-[#9C5432] text-white text-[11px] font-medium uppercase tracking-wider rounded-md transition-colors text-center block cursor-pointer"
-                        >
-                          Découvrir la Fiche →
-                        </button>
-                      </div>
-                    )}
                   </div>
                 );
               })}
 
+              {/* Clamped Floating Glass Card: mathematically guaranteed to stay inside image borders */}
+              {hoveredHotspot && (
+                <div
+                  style={{
+                    left: 'clamp(8px, calc(' + hoveredHotspot.x + '% - 120px), calc(100% - 248px))',
+                    ...(hoveredHotspot.y < 50
+                      ? { top: `calc(${hoveredHotspot.y}% + 22px)` }
+                      : { bottom: `calc(${100 - hoveredHotspot.y}% + 22px)` }),
+                  }}
+                  onMouseEnter={() => handleOpenHotspot(hoveredHotspot.id)}
+                  onMouseLeave={handleScheduleCloseHotspot}
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute w-[240px] max-w-[calc(100%-16px)] bg-white/95 backdrop-blur-md rounded-xl p-3 shadow-2xl border border-[#E8E2D8] text-left z-50 transition-opacity duration-150"
+                >
+                  {hoveredProduct ? (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={hoveredProduct.images?.[0] || '/assets/images/hero_decor_home_salon_1793732697943.jpg'}
+                          alt={hoveredProduct.title}
+                          referrerPolicy="no-referrer"
+                          className="w-12 h-12 sm:w-14 sm:h-14 object-cover rounded-md bg-[#FAF8F5] shrink-0"
+                        />
+                        <div className="overflow-hidden min-w-0">
+                          <span className="text-[10px] text-[#9C5432] font-semibold uppercase tracking-wider block">
+                            Shop the Look
+                          </span>
+                          <h4 className="text-xs font-medium text-[#1C1917] truncate">
+                            {hoveredProduct.title}
+                          </h4>
+                          <p className="text-xs font-bold font-mono text-[#1C1917] mt-0.5">
+                            {formatPrice(hoveredProduct.price)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => onSelectProduct(hoveredProduct)}
+                        className="mt-2.5 w-full py-1.5 bg-[#1C1917] hover:bg-[#9C5432] text-white text-[11px] font-medium uppercase tracking-wider rounded-md transition-colors text-center block cursor-pointer"
+                      >
+                        Découvrir la Fiche →
+                      </button>
+                    </>
+                  ) : (
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-[#9C5432] font-semibold uppercase tracking-wider block">
+                        Détail de la Scène
+                      </span>
+                      <h4 className="text-xs font-semibold text-[#1C1917]">
+                        {hoveredHotspot.label || 'Pièce Décor Home'}
+                      </h4>
+                      <p className="text-[11px] text-[#78716C]">
+                        Disponible sur demande au showroom Décor Home Béjaïa.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Bottom Caption Overlay */}
-              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6 text-white">
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6 text-white pointer-events-none z-10">
                 <span className="text-xs uppercase tracking-widest text-[#EAD8C3] font-medium block">
                   {activeScene.subtitle}
                 </span>
@@ -170,32 +297,63 @@ export const LookbookSection: React.FC<LookbookSectionProps> = ({
 
             {/* List of Products in this look */}
             <div className="space-y-3 pt-2">
-              {sceneProducts.map((p) => (
-                <div
-                  key={p.id}
-                  onClick={() => onSelectProduct(p)}
-                  className="p-3 rounded-xl border border-[#E8E2D8] hover:border-[#9C5432] hover:bg-[#FAF8F5] transition-all cursor-pointer flex items-center justify-between group"
-                >
-                  <div className="flex items-center gap-3 overflow-hidden">
-                    <img
-                      src={p.images?.[0]}
-                      alt={p.title}
-                      referrerPolicy="no-referrer"
-                      className="w-12 h-12 object-cover rounded-lg bg-[#FAF8F5] shrink-0"
-                    />
-                    <div className="overflow-hidden">
-                      <p className="text-xs font-semibold text-[#1C1917] group-hover:text-[#9C5432] transition-colors truncate">
-                        {p.title}
-                      </p>
-                      <p className="text-[11px] text-[#78716C] font-mono mt-0.5">
-                        {formatPrice(p.price)}
-                      </p>
+              {sceneProducts.length > 0 ? (
+                sceneProducts.map((p) => (
+                  <div
+                    key={p.id}
+                    onClick={() => onSelectProduct(p)}
+                    className="p-3 rounded-xl border border-[#E8E2D8] hover:border-[#9C5432] hover:bg-[#FAF8F5] transition-all cursor-pointer flex items-center justify-between group"
+                  >
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <img
+                        src={p.images?.[0] || '/assets/images/hero_decor_home_salon_1793732697943.jpg'}
+                        alt={p.title}
+                        referrerPolicy="no-referrer"
+                        className="w-12 h-12 object-cover rounded-lg bg-[#FAF8F5] shrink-0"
+                      />
+                      <div className="overflow-hidden">
+                        <p className="text-xs font-semibold text-[#1C1917] group-hover:text-[#9C5432] transition-colors truncate">
+                          {p.title}
+                        </p>
+                        <p className="text-[11px] text-[#78716C] font-mono mt-0.5">
+                          {formatPrice(p.price)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  <ArrowRight className="w-4 h-4 text-[#A8A29E] group-hover:text-[#9C5432] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
-                </div>
-              ))}
+                    <ArrowRight className="w-4 h-4 text-[#A8A29E] group-hover:text-[#9C5432] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+                  </div>
+                ))
+              ) : (activeScene.hotspots || []).length > 0 ? (
+                (activeScene.hotspots || []).map((hs) => (
+                  <div
+                    key={hs.id}
+                    onMouseEnter={() => handleOpenHotspot(hs.id)}
+                    onMouseLeave={handleScheduleCloseHotspot}
+                    onClick={() => handleOpenHotspot(hs.id)}
+                    className="p-3 rounded-xl border border-[#E8E2D8] hover:border-[#9C5432] hover:bg-[#FAF8F5] transition-all cursor-pointer flex items-center justify-between group"
+                  >
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <div className="w-10 h-10 rounded-lg bg-[#FAF8F5] border border-[#E8E2D8] flex items-center justify-center text-[#9C5432] shrink-0">
+                        <Tag className="w-4 h-4" />
+                      </div>
+                      <div className="overflow-hidden">
+                        <p className="text-xs font-semibold text-[#1C1917] group-hover:text-[#9C5432] transition-colors truncate">
+                          {hs.label}
+                        </p>
+                        <p className="text-[11px] text-[#78716C] mt-0.5">
+                          Pièce de la mise en scène
+                        </p>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-[#A8A29E] group-hover:text-[#9C5432] shrink-0 ml-2" />
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-[#78716C] italic py-4 text-center bg-[#FAF8F5] rounded-xl border border-dashed border-[#E8E2D8]">
+                  Aucune pièce associée à cette ambiance pour le moment.
+                </p>
+              )}
             </div>
 
             <div className="pt-2 border-t border-[#E8E2D8] text-[11px] text-[#78716C] text-center">
