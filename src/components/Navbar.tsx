@@ -30,7 +30,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Editorial Announcement Banner */}
       <div className="bg-[#1C1917] text-[#FAF8F5] text-[11px] sm:text-xs py-1.5 px-4 tracking-wider text-center flex items-center justify-between">
         <span className="hidden sm:inline-block opacity-75">Boutique & Showroom d'Intérieur</span>
-        <span className="mx-auto font-medium">Showroom ouvert du lundi au samedi · Visite privée & conseils sur rendez-vous</span>
+        <span className="mx-auto font-medium">{settings.hoursWeekday} · Visite privée & conseils sur rendez-vous</span>
         <div className="hidden sm:flex items-center gap-3 opacity-80">
           <a
             href={settings.instagramUrl}

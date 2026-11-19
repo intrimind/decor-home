@@ -90,19 +90,15 @@ export const ShowroomSection: React.FC<ShowroomSectionProps> = ({ settings }) =>
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-[#1C1917]">
                     Horaires d'Ouverture
                   </h4>
-                  <div className="space-y-1.5 text-xs text-[#57534E]">
-                    <div className="flex justify-between pb-1 border-b border-[#F5F2EB]">
-                      <span className="font-medium">Lundi – Samedi</span>
-                      <span className="font-mono text-[#1C1917]">10h00 – 19h30</span>
+                  <div className="space-y-2 text-xs text-[#57534E]">
+                    <div className="pb-1.5 border-b border-[#F5F2EB]">
+                      <span className="font-mono text-[#1C1917] block">{settings.hoursWeekday}</span>
                     </div>
-                    <div className="flex justify-between pb-1 border-b border-[#F5F2EB]">
-                      <span className="font-medium">Vendredi</span>
-                      <span className="font-mono text-[#1C1917]">15h00 – 20h00</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium text-[#78716C]">Dimanche</span>
-                      <span className="text-[#A8A29E]">Fermé (sur rendez-vous)</span>
-                    </div>
+                    {settings.hoursWeekend && (
+                      <div>
+                        <span className="font-mono text-[#78716C] block">{settings.hoursWeekend}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

@@ -118,10 +118,15 @@ export const Footer: React.FC<FooterProps> = ({
               {settings.address}<br />
               {settings.city}
             </p>
-            <p className="text-xs text-[#A8A29E] pt-1">
-              <span className="text-white font-medium">Horaires : </span>
-              {settings.hoursWeekday}
-            </p>
+            <div className="text-xs text-[#A8A29E] pt-1 space-y-0.5">
+              <p>
+                <span className="text-white font-medium">Horaires : </span>
+                {settings.hoursWeekday}
+              </p>
+              {settings.hoursWeekend && (
+                <p className="text-[#78716C]">{settings.hoursWeekend}</p>
+              )}
+            </div>
 
             <div className="pt-2">
               <a

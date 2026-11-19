@@ -1947,7 +1947,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
                     <div className="space-y-1.5">
                       <label className="text-xs font-semibold text-[#1C1917] uppercase tracking-wider">
-                        Horaires Semaine (Lundi - Samedi)
+                        Horaires d'Ouverture (Semaine)
                       </label>
                       <input
                         type="text"
@@ -1959,7 +1959,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
                     <div className="space-y-1.5">
                       <label className="text-xs font-semibold text-[#1C1917] uppercase tracking-wider">
-                        Horaires Vendredi & Dimanche
+                        Horaires Fermeture / Weekend
                       </label>
                       <input
                         type="text"

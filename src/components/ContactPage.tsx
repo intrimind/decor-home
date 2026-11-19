@@ -97,7 +97,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ settings }) => {
                 <Phone className="w-6 h-6" />
               </div>
               <span className="text-[10px] font-semibold text-[#78716C] bg-[#FAF8F5] px-2 py-0.5 rounded border border-[#E8E2D8]">
-                10h – 19h30
+                Ligne directe
               </span>
             </div>
             <div>
