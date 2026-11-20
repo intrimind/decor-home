@@ -75,44 +75,44 @@ export const Hero: React.FC<HeroProps> = ({ settings, onExploreClick }) => {
         </div>
 
         {/* 4-Column Showcase Trust Strip */}
-        <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 pt-2">
-          <div className="p-4 sm:p-5 bg-white rounded-xl border border-[#E8E2D8] flex items-start gap-3.5">
-            <div className="p-2.5 rounded-lg bg-[#FAF8F5] text-[#9C5432] shrink-0">
-              <Sparkles className="w-5 h-5" />
+        <div className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 pt-2">
+          <div className="p-3.5 sm:p-5 bg-white rounded-xl border border-[#E8E2D8] flex flex-col sm:flex-row items-start gap-2.5 sm:gap-3.5 overflow-hidden">
+            <div className="p-2 sm:p-2.5 rounded-lg bg-[#FAF8F5] text-[#9C5432] shrink-0">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <h4 className="text-xs sm:text-sm font-semibold text-[#1C1917]">Matières Nobles</h4>
-              <p className="text-xs text-[#78716C] mt-0.5">Travertin, laiton brossé, chêne & grès artisanal</p>
-            </div>
-          </div>
-
-          <div className="p-4 sm:p-5 bg-white rounded-xl border border-[#E8E2D8] flex items-start gap-3.5">
-            <div className="p-2.5 rounded-lg bg-[#FAF8F5] text-[#9C5432] shrink-0">
-              <Compass className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-xs sm:text-sm font-semibold text-[#1C1917]">Conseil Personnalisé</h4>
-              <p className="text-xs text-[#78716C] mt-0.5">Accompagnement dans vos choix d'agencement</p>
+            <div className="min-w-0 w-full">
+              <h4 className="text-xs sm:text-sm font-semibold text-[#1C1917] break-words">Matières Nobles</h4>
+              <p className="text-[11px] sm:text-xs text-[#78716C] mt-0.5 leading-snug break-words">Travertin, laiton brossé, chêne & grès artisanal</p>
             </div>
           </div>
 
-          <div className="p-4 sm:p-5 bg-white rounded-xl border border-[#E8E2D8] flex items-start gap-3.5">
-            <div className="p-2.5 rounded-lg bg-[#FAF8F5] text-[#9C5432] shrink-0">
-              <ShieldCheck className="w-5 h-5" />
+          <div className="p-3.5 sm:p-5 bg-white rounded-xl border border-[#E8E2D8] flex flex-col sm:flex-row items-start gap-2.5 sm:gap-3.5 overflow-hidden">
+            <div className="p-2 sm:p-2.5 rounded-lg bg-[#FAF8F5] text-[#9C5432] shrink-0">
+              <Compass className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <h4 className="text-xs sm:text-sm font-semibold text-[#1C1917]">Séries Limitées</h4>
-              <p className="text-xs text-[#78716C] mt-0.5">Pièces uniques et fabrication en ateliers d'art</p>
+            <div className="min-w-0 w-full">
+              <h4 className="text-xs sm:text-sm font-semibold text-[#1C1917] break-words">Conseil Personnalisé</h4>
+              <p className="text-[11px] sm:text-xs text-[#78716C] mt-0.5 leading-snug break-words">Accompagnement dans vos choix d'agencement</p>
             </div>
           </div>
 
-          <div className="p-4 sm:p-5 bg-white rounded-xl border border-[#E8E2D8] flex items-start gap-3.5">
-            <div className="p-2.5 rounded-lg bg-[#FAF8F5] text-[#9C5432] shrink-0">
-              <Clock className="w-5 h-5" />
+          <div className="p-3.5 sm:p-5 bg-white rounded-xl border border-[#E8E2D8] flex flex-col sm:flex-row items-start gap-2.5 sm:gap-3.5 overflow-hidden">
+            <div className="p-2 sm:p-2.5 rounded-lg bg-[#FAF8F5] text-[#9C5432] shrink-0">
+              <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <h4 className="text-xs sm:text-sm font-semibold text-[#1C1917]">Showroom Ouvert 6j/7</h4>
-              <p className="text-xs text-[#78716C] mt-0.5">{settings.address}, {settings.city}</p>
+            <div className="min-w-0 w-full">
+              <h4 className="text-xs sm:text-sm font-semibold text-[#1C1917] break-words">Séries Limitées</h4>
+              <p className="text-[11px] sm:text-xs text-[#78716C] mt-0.5 leading-snug break-words">Pièces uniques et fabrication en ateliers d'art</p>
+            </div>
+          </div>
+
+          <div className="p-3.5 sm:p-5 bg-white rounded-xl border border-[#E8E2D8] flex flex-col sm:flex-row items-start gap-2.5 sm:gap-3.5 overflow-hidden">
+            <div className="p-2 sm:p-2.5 rounded-lg bg-[#FAF8F5] text-[#9C5432] shrink-0">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div className="min-w-0 w-full">
+              <h4 className="text-xs sm:text-sm font-semibold text-[#1C1917] break-words">Showroom Ouvert 6j/7</h4>
+              <p className="text-[11px] sm:text-xs text-[#78716C] mt-0.5 leading-snug break-words">{settings.address}, {settings.city}</p>
             </div>
           </div>
         </div>

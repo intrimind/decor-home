@@ -53,14 +53,14 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {/* Top Bar Contract: 3-Zone Navigation */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between gap-8 h-20">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between gap-2 sm:gap-8 h-16 sm:h-20">
           {/* Zone 1: Single text element wordmark */}
           <button
             onClick={() => handleNavClick('accueil')}
-            className="text-left group cursor-pointer"
+            className="text-left group cursor-pointer min-w-0"
           >
-            <span className="font-serif text-2xl sm:text-3xl tracking-widest text-[#1C1917] font-semibold uppercase group-hover:text-[#9C5432] transition-colors whitespace-nowrap shrink-0">
+            <span className="font-serif text-lg sm:text-3xl tracking-wider sm:tracking-widest text-[#1C1917] font-semibold uppercase group-hover:text-[#9C5432] transition-colors whitespace-nowrap shrink-0">
               DÉCOR HOME
             </span>
           </button>
@@ -94,12 +94,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
 
           {/* Zone 3: 1 primary action button + discreet controls */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <a
               href={generalWhatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium uppercase tracking-wider text-white bg-[#1C1917] hover:bg-[#9C5432] rounded-md transition-colors whitespace-nowrap shadow-sm"
+              className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-medium uppercase tracking-wider text-white bg-[#1C1917] hover:bg-[#9C5432] rounded-md transition-colors whitespace-nowrap shadow-sm"
             >
               <MessageCircle className="w-3.5 h-3.5 text-[#25D366]" />
               <span className="hidden sm:inline">Discuter sur WhatsApp</span>
@@ -109,14 +109,42 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Mobile Hamburger Toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 text-[#1C1917] hover:bg-[#EFECE6] rounded-md cursor-pointer"
+              className="md:hidden p-1.5 sm:p-2 text-[#1C1917] hover:bg-[#EFECE6] rounded-md cursor-pointer"
               aria-label="Menu"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
             </button>
           </div>
         </div>
       </div>
+
+      {/* Mobile & Tablet Direct Quick-Navigation Strip (visible at top of page just like PC) */}
+      <nav className="md:hidden border-t border-[#E8E2D8]/80 bg-[#FAF8F5] px-3 py-2 flex items-center justify-between gap-1.5 overflow-x-auto no-scrollbar">
+        <button
+          onClick={() => handleNavClick('catalogue')}
+          className="px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide text-[#57534E] hover:text-[#1C1917] hover:bg-[#EFECE6] rounded-md whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+        >
+          Collections
+        </button>
+        <button
+          onClick={() => handleNavClick('lookbook')}
+          className="px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide text-[#57534E] hover:text-[#1C1917] hover:bg-[#EFECE6] rounded-md whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+        >
+          Lookbook
+        </button>
+        <button
+          onClick={() => handleNavClick('showroom')}
+          className="px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide text-[#57534E] hover:text-[#1C1917] hover:bg-[#EFECE6] rounded-md whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+        >
+          Showroom
+        </button>
+        <button
+          onClick={() => handleNavClick('contact')}
+          className="px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide text-[#57534E] hover:text-[#1C1917] hover:bg-[#EFECE6] rounded-md whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+        >
+          Contact
+        </button>
+      </nav>
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (

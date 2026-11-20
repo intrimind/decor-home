@@ -179,7 +179,7 @@ export default function App() {
 
   // IF PUBLIC SHOWROOM: Pure Visitor Showcase without any visible admin buttons
   return (
-    <div className="min-h-screen bg-[#FAF8F5] text-[#1C1917] flex flex-col selection:bg-[#EAD8C3] selection:text-[#1C1917]">
+    <div className="min-h-screen bg-[#FAF8F5] text-[#1C1917] flex flex-col overflow-x-hidden selection:bg-[#EAD8C3] selection:text-[#1C1917]">
       
       {/* Top Bar Navigation (Clean public customer interface) */}
       <Navbar

@@ -1,16 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
-  MapPin, 
   Phone, 
   MessageCircle, 
   Instagram, 
-  Clock, 
-  Navigation, 
-  Copy, 
-  Check, 
   Sparkles,
-  ExternalLink,
-  Car
+  ExternalLink
 } from 'lucide-react';
 import { StoreSettings } from '../types';
 
@@ -19,39 +13,26 @@ interface ContactPageProps {
 }
 
 export const ContactPage: React.FC<ContactPageProps> = ({ settings }) => {
-  const [copied, setCopied] = useState(false);
-
   const cleanWhatsapp = settings.whatsappNumber.replace(/[^0-9]/g, '');
   const generalWhatsappUrl = `https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(
     'Bonjour Décor Home Béjaïa, je souhaite des renseignements sur vos collections ou préparer ma visite au showroom.'
   )}`;
 
-  const handleCopyAddress = () => {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(`${settings.address}, ${settings.city}`);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    }
-  };
-
-  // Google Maps interactive embed URL using exact coordinates 36.748502, 5.0489926 (Plus Code: P2XX+CJ9, Béjaïa)
-  const googleMapsEmbedUrl = 'https://maps.google.com/maps?q=36.748502,5.0489926&hl=fr&z=17&output=embed';
-
   return (
-    <section id="contact" className="py-16 sm:py-24 bg-[#FAF8F5] scroll-mt-20 border-t border-[#E8E2D8]">
+    <section id="contact" className="py-16 sm:py-20 bg-[#FAF8F5] scroll-mt-20 border-t border-[#E8E2D8]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         
         {/* Editorial Section Header */}
         <div className="text-center max-w-2xl mx-auto space-y-3">
           <div className="inline-flex items-center gap-1.5 text-xs uppercase tracking-widest text-[#9C5432] font-semibold">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Showroom & Contact</span>
+            <span>Réseaux & Contact Direct</span>
           </div>
           <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#1C1917] font-normal tracking-tight">
-            Venir au Showroom & Nous Contacter
+            Nous Contacter & Nous Suivre
           </h2>
           <p className="text-xs sm:text-sm text-[#78716C] leading-relaxed">
-            Notre showroom Décor Home à Béjaïa vous accueille pour vous faire vivre chaque texture, matière et luminaire en situation réelle.
+            Échangez directement avec notre équipe ou suivez les derniers arrivages du showroom Décor Home à Béjaïa.
           </p>
         </div>
 
@@ -171,114 +152,6 @@ export const ContactPage: React.FC<ContactPageProps> = ({ settings }) => {
               <ExternalLink className="w-3 h-3" />
             </div>
           </a>
-
-        </div>
-
-        {/* Full-width Showroom Location & Direct Google Maps Embed */}
-        <div className="bg-white rounded-2xl border border-[#E8E2D8] overflow-hidden shadow-sm">
-          
-          {/* Top Bar with Address & Actions */}
-          <div className="p-6 sm:p-8 border-b border-[#E8E2D8] flex flex-col md:flex-row md:items-center justify-between gap-6 bg-[#FAF8F5]">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-[#9C5432]" />
-                <h3 className="font-serif text-2xl text-[#1C1917] font-semibold">
-                  Localisation du Magasin
-                </h3>
-              </div>
-              <p className="text-sm font-medium text-[#1C1917]">
-                {settings.address}, {settings.city}
-              </p>
-              <p className="text-xs text-[#78716C] font-mono">
-                Plus Code : P2XX+CJ9, Béjaïa (36.748502, 5.048993)
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                onClick={handleCopyAddress}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 text-xs text-[#57534E] hover:text-[#1C1917] bg-white rounded-lg border border-[#E8E2D8] transition-colors cursor-pointer shadow-sm"
-              >
-                {copied ? (
-                  <>
-                    <Check className="w-4 h-4 text-emerald-600" />
-                    <span className="text-emerald-700 font-medium">Adresse copiée</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4" />
-                    <span>Copier l'adresse</span>
-                  </>
-                )}
-              </button>
-
-              <a
-                href={settings.googleMapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1C1917] hover:bg-[#9C5432] text-white text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors shadow-sm"
-              >
-                <Navigation className="w-4 h-4 text-[#C87D55]" />
-                <span>Ouvrir dans Google Maps</span>
-              </a>
-            </div>
-          </div>
-
-          {/* Interactive Google Maps Iframe Directly in Page */}
-          <div className="relative w-full h-[380px] sm:h-[460px] lg:h-[500px] bg-[#EFECE6]">
-            <iframe
-              title="Carte Google Maps Décor Home Béjaïa"
-              src={googleMapsEmbedUrl}
-              className="w-full h-full border-0"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-            />
-          </div>
-
-          {/* Bottom Info Strip: Horaires & Accès */}
-          <div className="p-6 sm:p-8 bg-white grid grid-cols-1 md:grid-cols-3 gap-6 text-xs border-t border-[#E8E2D8]">
-            <div className="flex items-start gap-3">
-              <div className="p-2.5 rounded-lg bg-[#FAF8F5] text-[#9C5432] shrink-0 border border-[#E8E2D8]">
-                <Clock className="w-4 h-4" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-[#1C1917] uppercase tracking-wider">
-                  Horaires en Semaine
-                </h4>
-                <p className="text-[#57534E] mt-1 font-mono">
-                  {settings.hoursWeekday}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="p-2.5 rounded-lg bg-[#FAF8F5] text-[#9C5432] shrink-0 border border-[#E8E2D8]">
-                <Clock className="w-4 h-4" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-[#1C1917] uppercase tracking-wider">
-                  Weekend & Vendredi
-                </h4>
-                <p className="text-[#57534E] mt-1 font-mono">
-                  {settings.hoursWeekend}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="p-2.5 rounded-lg bg-[#FAF8F5] text-[#9C5432] shrink-0 border border-[#E8E2D8]">
-                <Car className="w-4 h-4" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-[#1C1917] uppercase tracking-wider">
-                  Accès & Stationnement
-                </h4>
-                <p className="text-[#57534E] mt-1">
-                  Cité Djama Bâtiment D, Béjaïa · Stationnement aisé devant le showroom.
-                </p>
-              </div>
-            </div>
-          </div>
 
         </div>
 
