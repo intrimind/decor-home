@@ -235,7 +235,28 @@ export function subscribeToProducts(
 // Save or Update Product
 export async function saveProductToFirestore(product: Product): Promise<void> {
   const normalized = normalizeProduct(product);
-  // Always update local storage first so the UI updates immediately
+
+  // Guard against Firestore 1 MiB document size limit before writing
+  const payloadSize = new Blob([JSON.stringify(normalized)]).size;
+  if (payloadSize > 950_000) {
+    throw new Error('DOCUMENT_TOO_LARGE: Les photos de cet article dépassent la taille maximale autorisée (1 Mo). Veuillez réduire le nombre de photos.');
+  }
+
+  // Sync with Firestore first so failures are surfaced instead of silent local-only drift
+  try {
+    await setDoc(doc(db, 'products', normalized.id), normalized);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `products/${normalized.id}`);
+  }
+
+  // Update local storage cache after confirmed Firestore write
+  try {
+    const deletedIds = getDeletedProductIds().filter(id => id !== normalized.id);
+    localStorage.setItem(LOCAL_DELETED_PRODUCTS_KEY, JSON.stringify(deletedIds));
+  } catch {
+    // ignore
+  }
+
   const current = getLocalProducts();
   const idx = current.findIndex(p => p.id === normalized.id);
   if (idx >= 0) {
@@ -244,26 +265,19 @@ export async function saveProductToFirestore(product: Product): Promise<void> {
     current.unshift(normalized);
   }
   saveLocalProducts(current);
-
-  // Sync with Firestore asynchronously
-  try {
-    await setDoc(doc(db, 'products', normalized.id), normalized);
-  } catch (error) {
-    console.warn("Firestore sync warning (changes preserved locally in browser):", error);
-  }
 }
 
 // Delete Product
 export async function deleteProductFromFirestore(productId: string): Promise<void> {
-  addDeletedProductId(productId);
-  const current = getLocalProducts().filter(p => p.id !== productId);
-  saveLocalProducts(current);
-
   try {
     await deleteDoc(doc(db, 'products', productId));
   } catch (error) {
-    console.warn("Firestore delete warning (deleted locally in browser):", error);
+    handleFirestoreError(error, OperationType.DELETE, `products/${productId}`);
   }
+
+  addDeletedProductId(productId);
+  const current = getLocalProducts().filter(p => p.id !== productId);
+  saveLocalProducts(current);
 }
 
 // Subscribe to Store Settings
@@ -275,7 +289,7 @@ export function subscribeToStoreSettings(
     async (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data() as StoreSettings;
-        if (data.address && !data.address.includes('Bir Mourad')) {
+        if (!data.address || !data.address.includes('Bir Mourad')) {
           const normalized = normalizeStoreSettings(data);
           onUpdate(normalized);
           saveLocalStoreSettings(normalized);
@@ -302,13 +316,16 @@ export function subscribeToStoreSettings(
 // Save Store Settings
 export async function saveStoreSettingsToFirestore(settings: StoreSettings): Promise<void> {
   const normalized = normalizeStoreSettings(settings);
-  saveLocalStoreSettings(normalized);
+  const payloadSize = new Blob([JSON.stringify(normalized)]).size;
+  if (payloadSize > 950_000) {
+    throw new Error('DOCUMENT_TOO_LARGE: Les images d\'arrière-plan sont trop volumineuses pour la base de données (limite 1 Mo).');
+  }
   try {
     await setDoc(doc(db, 'storeSettings', 'main'), normalized);
   } catch (error) {
-    console.warn("Firestore store settings sync warning:", error);
-    throw error;
+    handleFirestoreError(error, OperationType.WRITE, 'storeSettings/main');
   }
+  saveLocalStoreSettings(normalized);
 }
 
 // LocalStorage cache key for Lookbooks
@@ -431,41 +448,47 @@ export function subscribeToLookbooks(
 
 // Save or Update Lookbook
 export async function saveLookbookToFirestore(scene: LookbookScene): Promise<void> {
+  const normalized = normalizeLookbook(scene);
+  const payloadSize = new Blob([JSON.stringify(normalized)]).size;
+  if (payloadSize > 950_000) {
+    throw new Error('DOCUMENT_TOO_LARGE: La photo de ce lookbook est trop volumineuse (limite 1 Mo).');
+  }
+
+  try {
+    await setDoc(doc(db, 'lookbooks', normalized.id), normalized);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `lookbooks/${normalized.id}`);
+  }
+
   // If re-saving a previously deleted ID, remove it from deleted blacklist
   try {
-    const deletedIds = getDeletedLookbookIds().filter(id => id !== scene.id);
+    const deletedIds = getDeletedLookbookIds().filter(id => id !== normalized.id);
     localStorage.setItem(LOCAL_DELETED_LOOKBOOKS_KEY, JSON.stringify(deletedIds));
   } catch {
     // ignore
   }
 
   const current = getLocalLookbooks();
-  const idx = current.findIndex(s => s.id === scene.id);
+  const idx = current.findIndex(s => s.id === normalized.id);
   if (idx >= 0) {
-    current[idx] = scene;
+    current[idx] = normalized;
   } else {
-    current.push(scene);
+    current.push(normalized);
   }
   saveLocalLookbooks(current);
-
-  try {
-    await setDoc(doc(db, 'lookbooks', scene.id), scene);
-  } catch (error) {
-    console.warn("Firestore lookbook sync warning (preserved locally):", error);
-  }
 }
 
 // Delete Lookbook
 export async function deleteLookbookFromFirestore(sceneId: string): Promise<void> {
-  addDeletedLookbookId(sceneId);
-  const current = getLocalLookbooks().filter(s => s.id !== sceneId);
-  saveLocalLookbooks(current);
-
   try {
     await deleteDoc(doc(db, 'lookbooks', sceneId));
   } catch (error) {
-    console.warn("Firestore lookbook delete warning:", error);
+    handleFirestoreError(error, OperationType.DELETE, `lookbooks/${sceneId}`);
   }
+
+  addDeletedLookbookId(sceneId);
+  const current = getLocalLookbooks().filter(s => s.id !== sceneId);
+  saveLocalLookbooks(current);
 }
 
 // Reset Catalog and Lookbooks to initial items

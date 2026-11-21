@@ -1,13 +1,14 @@
 /**
  * Utility to process, resize and compress image files uploaded from PC or mobile.
- * Generates lightweight, high-fidelity base64 data URLs (~80-150KB) so they can be
- * saved reliably in localStorage and Firestore without exceeding browser quotas.
+ * Ensures each base64 data URL stays compact (~80-180KB) so documents with multiple
+ * images stay safely under Firestore's 1 MiB document size limit.
  */
 export async function processImageFile(
   file: File,
-  maxWidth = 1280,
-  maxHeight = 1280,
-  quality = 0.85
+  maxWidth = 1080,
+  maxHeight = 1080,
+  quality = 0.78,
+  maxDataUrlBytes = 210_000
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -19,7 +20,7 @@ export async function processImageFile(
     reader.onload = (event) => {
       const img = new Image();
       img.onerror = () => {
-        reject(new Error('Le fichier sélectionné n\'est pas une image valide.'));
+        reject(new Error("Le fichier sélectionné n'est pas une image valide."));
       };
 
       img.onload = () => {
@@ -47,16 +48,35 @@ export async function processImageFile(
             return;
           }
 
-          // Use high quality image smoothing
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Convert to compressed JPEG data URL
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+          // Step quality down if needed so each image remains compact for Firestore
+          let currentQuality = quality;
+          let compressedDataUrl = canvas.toDataURL('image/jpeg', currentQuality);
+
+          while (compressedDataUrl.length > maxDataUrlBytes && currentQuality > 0.45) {
+            currentQuality = Number((currentQuality - 0.1).toFixed(2));
+            compressedDataUrl = canvas.toDataURL('image/jpeg', currentQuality);
+          }
+
+          // If still too large, scale dimensions down by 25% once more
+          if (compressedDataUrl.length > maxDataUrlBytes) {
+            const smallCanvas = document.createElement('canvas');
+            smallCanvas.width = Math.round(width * 0.75);
+            smallCanvas.height = Math.round(height * 0.75);
+            const sCtx = smallCanvas.getContext('2d');
+            if (sCtx) {
+              sCtx.imageSmoothingEnabled = true;
+              sCtx.imageSmoothingQuality = 'high';
+              sCtx.drawImage(canvas, 0, 0, smallCanvas.width, smallCanvas.height);
+              compressedDataUrl = smallCanvas.toDataURL('image/jpeg', 0.65);
+            }
+          }
+
           resolve(compressedDataUrl);
         } catch {
-          // Fallback to original data URL if canvas fails
           resolve(event.target?.result as string);
         }
       };

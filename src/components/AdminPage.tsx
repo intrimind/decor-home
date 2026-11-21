@@ -146,7 +146,18 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
   const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
     setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3500);
+    setTimeout(() => setNotification(null), type === 'error' ? 6500 : 3500);
+  };
+
+  const getSaveErrorMessage = (err: unknown, fallback: string) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('DOCUMENT_TOO_LARGE')) {
+      return msg.replace('DOCUMENT_TOO_LARGE: ', '');
+    }
+    if (msg.includes('offline') || msg.includes('network') || msg.includes('Failed to fetch')) {
+      return 'Connexion au serveur impossible. Vérifiez votre réseau ou désactivez votre bloqueur.';
+    }
+    return fallback;
   };
 
   // Start adding a new product
@@ -315,7 +326,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       onRefreshData();
     } catch (err) {
       console.error(err);
-      showNotification("Erreur lors de l'enregistrement", 'error');
+      showNotification(getSaveErrorMessage(err, "Erreur de synchronisation avec le serveur lors de l'enregistrement."), 'error');
     }
   };
 
@@ -351,7 +362,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     if (!files || files.length === 0) return;
     setIsProcessingSiteImage(target);
     try {
-      const processed = await processImageFile(files[0], 1440, 960, 0.8);
+      const processed = await processImageFile(files[0], 1200, 800, 0.75, 190_000);
       setSettingsForm(prev => ({
         ...prev,
         [target === 'hero' ? 'heroImage' : 'showroomImage']: processed
@@ -380,7 +391,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       onRefreshData();
     } catch (err) {
       console.error(err);
-      showNotification('Erreur lors de la mise à jour des paramètres', 'error');
+      showNotification(getSaveErrorMessage(err, 'Erreur lors de la synchronisation des paramètres avec le serveur.'), 'error');
     }
   };
 
@@ -437,7 +448,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setIsProcessingLookbookImage(true);
     try {
       const file = files[0];
-      const processed = await processImageFile(file, 1600, 1200, 0.85);
+      const processed = await processImageFile(file, 1400, 1050, 0.78, 280_000);
       setLookbookForm(prev => ({
         ...prev,
         image: processed
@@ -579,7 +590,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error(err);
-      showNotification('Erreur lors de l\'enregistrement du Lookbook', 'error');
+      showNotification(getSaveErrorMessage(err, "Erreur de synchronisation lors de l'enregistrement du Lookbook."), 'error');
     }
   };
 
@@ -1210,6 +1221,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                           <input
                             type="text"
                             required
+                            maxLength={150}
                             value={productForm.title || ''}
                             onChange={(e) => setProductForm({ ...productForm, title: e.target.value })}
                             className="w-full px-4 py-2.5 text-sm bg-[#FAF8F5] border border-[#E8E2D8] rounded-lg focus:border-[#9C5432] focus:outline-none"
@@ -1257,6 +1269,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                           </label>
                           <input
                             type="text"
+                            maxLength={40}
                             value={productForm.reference || ''}
                             onChange={(e) => setProductForm({ ...productForm, reference: e.target.value })}
                             className="w-full px-4 py-2.5 text-sm bg-[#FAF8F5] border border-[#E8E2D8] rounded-lg focus:border-[#9C5432] focus:outline-none font-mono"
