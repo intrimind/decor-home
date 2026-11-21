@@ -154,6 +154,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     if (msg.includes('DOCUMENT_TOO_LARGE')) {
       return msg.replace('DOCUMENT_TOO_LARGE: ', '');
     }
+    if (msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('resource-exhausted') || msg.includes('429')) {
+      return 'Quota quotidien gratuit Firestore dépassé : réessayez demain après la réinitialisation.';
+    }
     if (msg.includes('offline') || msg.includes('network') || msg.includes('Failed to fetch')) {
       return 'Connexion au serveur impossible. Vérifiez votre réseau ou désactivez votre bloqueur.';
     }

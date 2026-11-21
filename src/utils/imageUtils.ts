@@ -5,10 +5,10 @@
  */
 export async function processImageFile(
   file: File,
-  maxWidth = 1080,
-  maxHeight = 1080,
-  quality = 0.78,
-  maxDataUrlBytes = 210_000
+  maxWidth = 900,
+  maxHeight = 900,
+  quality = 0.72,
+  maxDataUrlBytes = 110_000
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
