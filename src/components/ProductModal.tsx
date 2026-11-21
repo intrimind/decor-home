@@ -41,16 +41,21 @@ export const ProductModal: React.FC<ProductModalProps> = ({
     : ['/assets/images/hero_decor_home_salon_1793732697943.jpg'];
 
   const cleanWhatsapp = settings.whatsappNumber.replace(/[^0-9]/g, '');
-  const whatsappPreFilledText = `Bonjour Décor Home, je souhaite des informations et connaître la disponibilité pour le produit : "${product.title}" (Réf: ${product.reference}, Tarif: ${new Intl.NumberFormat('fr-FR').format(product.price)} DZD). Est-il visible au showroom ?`;
+  const detailsParts: string[] = [];
+  if (product.reference) detailsParts.push(`Réf: ${product.reference}`);
+  if (product.price > 0) detailsParts.push(`Tarif: ${new Intl.NumberFormat('fr-FR').format(product.price)} DZD`);
+  const detailsSuffix = detailsParts.length > 0 ? ` (${detailsParts.join(', ')})` : '';
+  const whatsappPreFilledText = `Bonjour Décor Home, je souhaite des informations et connaître la disponibilité pour le produit : "${product.title}"${detailsSuffix}. Est-il visible au showroom ?`;
   const whatsappUrl = `https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(whatsappPreFilledText)}`;
 
   const formatPrice = (price: number) => {
+    if (!price || price <= 0) return 'Sur demande';
     return new Intl.NumberFormat('fr-FR').format(price) + ' DZD';
   };
 
   const handleShare = () => {
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.origin + `#produit-${product.reference}`);
+      navigator.clipboard.writeText(window.location.origin + `#produit-${product.reference || product.id}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     }
@@ -77,8 +82,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({
         <div className="flex items-center justify-between gap-2 px-4 sm:px-6 py-3.5 sm:py-4 border-b border-[#E8E2D8] bg-[#FAF8F5] shrink-0 min-w-0">
           <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs uppercase tracking-wider text-[#78716C] min-w-0 truncate">
             <span className="font-semibold text-[#1C1917] truncate">Décor Home</span>
-            <span className="shrink-0">·</span>
-            <span className="truncate">Réf. {product.reference}</span>
+            {product.reference && (
+              <>
+                <span className="shrink-0">·</span>
+                <span className="truncate">Réf. {product.reference}</span>
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -224,13 +233,15 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 text-xs min-w-0">
-                  <Tag className="w-4 h-4 text-[#9C5432] shrink-0 mt-0.5" />
-                  <div className="min-w-0 break-words">
-                    <span className="font-semibold text-[#1C1917]">Référence Unique : </span>
-                    <span className="font-mono text-[#57534E]">{product.reference}</span>
+                {product.reference && (
+                  <div className="flex items-start gap-3 text-xs min-w-0">
+                    <Tag className="w-4 h-4 text-[#9C5432] shrink-0 mt-0.5" />
+                    <div className="min-w-0 break-words">
+                      <span className="font-semibold text-[#1C1917]">Référence Unique : </span>
+                      <span className="font-mono text-[#57534E]">{product.reference}</span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Primary Action Button: WhatsApp Pre-filled */}

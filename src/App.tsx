@@ -103,7 +103,11 @@ export default function App() {
 
       if (hash && hash.startsWith('#produit-')) {
         const ref = hash.replace('#produit-', '');
-        const found = products.find((p) => p.reference.toLowerCase() === ref.toLowerCase());
+        const found = products.find(
+          (p) =>
+            (p.reference && p.reference.toLowerCase() === ref.toLowerCase()) ||
+            p.id.toLowerCase() === ref.toLowerCase()
+        );
         if (found) {
           setSelectedProduct(found);
         }

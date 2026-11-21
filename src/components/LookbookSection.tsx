@@ -45,7 +45,9 @@ export const LookbookSection: React.FC<LookbookSectionProps> = ({
     if (productId) {
       const byId = products.find((p) => p.id === productId);
       if (byId) return byId;
-      const byRef = products.find((p) => p.reference.toLowerCase() === productId.toLowerCase());
+      const byRef = products.find(
+        (p) => p.reference && p.reference.toLowerCase() === productId.toLowerCase()
+      );
       if (byRef) return byRef;
     }
     if (fallbackLabel) {
@@ -74,6 +76,7 @@ export const LookbookSection: React.FC<LookbookSectionProps> = ({
     .filter((p): p is Product => Boolean(p));
 
   const formatPrice = (price: number) => {
+    if (!price || price <= 0) return 'Sur demande';
     return new Intl.NumberFormat('fr-FR').format(price) + ' DZD';
   };
 

@@ -94,14 +94,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [productForm, setProductForm] = useState<Partial<Product>>({
     title: '',
     category: 'luminaires',
-    price: 25000,
+    price: undefined,
     currency: 'DZD',
     dimensions: 'H 50 cm × L 30 cm × P 30 cm',
     material: 'Laiton brossé & travertin beige',
     description: '',
     badge: 'aucun',
     inStock: true,
-    reference: `DH-PIECE-${Math.floor(100 + Math.random() * 900)}`,
+    reference: '',
     images: [],
     instagramReelUrl: '',
     tiktokVideoUrl: '',
@@ -156,14 +156,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setProductForm({
       title: '',
       category: 'luminaires',
-      price: 25000,
+      price: undefined,
       currency: 'DZD',
       dimensions: 'H 60 cm × L 40 cm',
       material: 'Travertin naturel & laiton brossé',
       description: 'Pièce exclusive travaillée dans des matières brutes et intemporelles.',
       badge: 'nouveaute',
       inStock: true,
-      reference: `DH-${Math.floor(1000 + Math.random() * 9000)}`,
+      reference: '',
       images: [],
       instagramReelUrl: '',
       tiktokVideoUrl: '',
@@ -178,6 +178,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setIsAddingNew(false);
     setProductForm({
       ...prod,
+      price: prod.price > 0 ? prod.price : undefined,
       images: prod.images ? [...prod.images] : []
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -269,24 +270,31 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   // Save product (create or update)
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!productForm.title || !productForm.category || !productForm.price) {
-      showNotification('Veuillez remplir le titre, la catégorie et le prix', 'error');
+    if (!productForm.title || !productForm.category) {
+      showNotification('Veuillez remplir le titre et la catégorie', 'error');
       return;
     }
 
     try {
+      const parsedPrice =
+        productForm.price !== undefined &&
+        productForm.price !== null &&
+        String(productForm.price).trim() !== ''
+          ? Number(productForm.price) || 0
+          : 0;
+
       const finalProduct: Product = {
         id: editingProduct ? editingProduct.id : `dh-${Date.now()}`,
         title: productForm.title || 'Nouvelle Pièce',
         category: (productForm.category as Category) || 'luminaires',
-        price: Number(productForm.price) || 0,
+        price: parsedPrice,
         currency: 'DZD',
         dimensions: productForm.dimensions || 'Non spécifiées',
         material: productForm.material || 'Matières naturelles',
         description: productForm.description || '',
         badge: (productForm.badge as BadgeType) || 'aucun',
         inStock: productForm.inStock ?? true,
-        reference: productForm.reference || `DH-${Date.now().toString().slice(-4)}`,
+        reference: (productForm.reference || '').trim(),
         images: productForm.images && productForm.images.length > 0 
           ? productForm.images 
           : ['/assets/images/hero_decor_home_salon_1793732697943.jpg'],
@@ -595,8 +603,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     const q = searchQuery.toLowerCase().trim();
     const matchesQuery = !q || 
       item.title.toLowerCase().includes(q) || 
-      item.reference.toLowerCase().includes(q) ||
-      item.material.toLowerCase().includes(q);
+      (item.reference || '').toLowerCase().includes(q) ||
+      (item.material || '').toLowerCase().includes(q);
     return matchesCat && matchesQuery;
   });
 
@@ -940,9 +948,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                                       {item.title}
                                     </div>
                                     <div className="flex items-center gap-2 mt-0.5">
-                                      <span className="text-[11px] font-mono text-[#78716C]">
-                                        {item.reference}
-                                      </span>
+                                      {item.reference ? (
+                                        <span className="text-[11px] font-mono text-[#78716C]">
+                                          {item.reference}
+                                        </span>
+                                      ) : (
+                                        <span className="text-[11px] text-[#A8A29E] italic">
+                                          Sans réf.
+                                        </span>
+                                      )}
                                       {item.badge && item.badge !== 'aucun' && (
                                         <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.2 bg-[#FAF8F5] border border-[#D6CEBE] text-[#9C5432] rounded font-semibold">
                                           {item.badge}
@@ -954,7 +968,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                                     {item.category.replace('-', ' ')}
                                   </td>
                                   <td className="py-3 px-4 font-mono font-medium text-[#1C1917]">
-                                    {new Intl.NumberFormat('fr-FR').format(item.price)} DZD
+                                    {item.price > 0 ? (
+                                      `${new Intl.NumberFormat('fr-FR').format(item.price)} DZD`
+                                    ) : (
+                                      <span className="text-[#78716C] italic font-sans font-normal">Sur demande</span>
+                                    )}
                                   </td>
                                   <td className="py-3 px-4">
                                     <button
@@ -1216,14 +1234,20 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
                         <div className="space-y-1.5">
                           <label className="text-xs font-semibold text-[#1C1917] uppercase tracking-wider">
-                            Tarif Showroom (en DZD) *
+                            Tarif Showroom (en DZD)
                           </label>
                           <input
                             type="number"
-                            required
-                            value={productForm.price || 0}
-                            onChange={(e) => setProductForm({ ...productForm, price: Number(e.target.value) })}
+                            min="0"
+                            value={productForm.price ?? ''}
+                            onChange={(e) =>
+                              setProductForm({
+                                ...productForm,
+                                price: e.target.value === '' ? undefined : Number(e.target.value),
+                              })
+                            }
                             className="w-full px-4 py-2.5 text-sm bg-[#FAF8F5] border border-[#E8E2D8] rounded-lg focus:border-[#9C5432] focus:outline-none font-mono"
+                            placeholder="ex: 25000 (laisser vide si sur demande)"
                           />
                         </div>
 
@@ -1738,7 +1762,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                                       <option value="">Sélectionner un produit...</option>
                                       {products.map((p) => (
                                         <option key={p.id} value={p.id}>
-                                          {p.title} ({p.reference}) - {new Intl.NumberFormat('fr-FR').format(p.price)} DZD
+                                          {p.title}
+                                          {p.reference ? ` (${p.reference})` : ''}
+                                          {p.price > 0 ? ` - ${new Intl.NumberFormat('fr-FR').format(p.price)} DZD` : ''}
                                         </option>
                                       ))}
                                     </select>
@@ -1787,7 +1813,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                                         <div className="flex items-center gap-2.5 overflow-hidden">
                                           <Tag className="w-3.5 h-3.5 text-[#9C5432] shrink-0" />
                                           <span className="font-medium text-[#1C1917] truncate">{hs.label}</span>
-                                          {linkedProd && (
+                                          {linkedProd && linkedProd.price > 0 && (
                                             <span className="text-[11px] text-[#78716C] font-mono shrink-0">
                                               ({new Intl.NumberFormat('fr-FR').format(linkedProd.price)} DZD)
                                             </span>
@@ -1854,7 +1880,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                                 )}
                                 <div className="overflow-hidden">
                                   <p className="font-medium text-[#1C1917] truncate">{p.title}</p>
-                                  <p className="text-[10px] text-[#78716C] font-mono">{new Intl.NumberFormat('fr-FR').format(p.price)} DZD</p>
+                                  <p className="text-[10px] text-[#78716C] font-mono">
+                                    {p.price > 0 ? `${new Intl.NumberFormat('fr-FR').format(p.price)} DZD` : 'Sur demande'}
+                                  </p>
                                 </div>
                               </div>
                             );

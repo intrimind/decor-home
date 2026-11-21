@@ -56,9 +56,9 @@ export const Catalog: React.FC<CatalogProps> = ({
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase().trim();
         const matchTitle = p.title.toLowerCase().includes(query);
-        const matchRef = p.reference.toLowerCase().includes(query);
-        const matchMaterial = p.material.toLowerCase().includes(query);
-        const matchDesc = p.description.toLowerCase().includes(query);
+        const matchRef = (p.reference || '').toLowerCase().includes(query);
+        const matchMaterial = (p.material || '').toLowerCase().includes(query);
+        const matchDesc = (p.description || '').toLowerCase().includes(query);
         if (!matchTitle && !matchRef && !matchMaterial && !matchDesc) {
           return false;
         }
@@ -66,8 +66,13 @@ export const Catalog: React.FC<CatalogProps> = ({
 
       return true;
     }).sort((a, b) => {
-      if (sortBy === 'price-asc') return a.price - b.price;
-      if (sortBy === 'price-desc') return b.price - a.price;
+      if (sortBy === 'price-asc') {
+        if ((!a.price || a.price <= 0) && (!b.price || b.price <= 0)) return 0;
+        if (!a.price || a.price <= 0) return 1;
+        if (!b.price || b.price <= 0) return -1;
+        return a.price - b.price;
+      }
+      if (sortBy === 'price-desc') return (b.price || 0) - (a.price || 0);
       if (sortBy === 'newest') {
         if (a.badge === 'nouveaute' && b.badge !== 'nouveaute') return -1;
         if (b.badge === 'nouveaute' && a.badge !== 'nouveaute') return 1;
@@ -83,11 +88,13 @@ export const Catalog: React.FC<CatalogProps> = ({
   }, [products, selectedCategory, statusFilter, searchQuery, sortBy]);
 
   const formatPrice = (price: number) => {
+    if (!price || price <= 0) return 'Sur demande';
     return new Intl.NumberFormat('fr-FR').format(price) + ' DZD';
   };
 
   const getQuickWhatsappUrl = (product: Product) => {
-    const message = `Bonjour Décor Home, je souhaite des informations sur le produit "${product.title}" (Réf: ${product.reference}) vu sur votre catalogue showroom. Est-il disponible pour une visite ?`;
+    const refPart = product.reference ? ` (Réf: ${product.reference})` : '';
+    const message = `Bonjour Décor Home, je souhaite des informations sur le produit "${product.title}"${refPart} vu sur votre catalogue showroom. Est-il disponible pour une visite ?`;
     return `https://wa.me/${cleanWhatsappNumber}?text=${encodeURIComponent(message)}`;
   };
 
@@ -327,8 +334,12 @@ export const Catalog: React.FC<CatalogProps> = ({
                     {/* Unboxed Metadata with Typographic Separator */}
                     <div className="flex items-center gap-2 text-[11px] text-[#78716C] uppercase tracking-wider">
                       <span>{product.category.replace('-', ' ')}</span>
-                      <span aria-hidden="true">·</span>
-                      <span className="font-mono text-[#A8A29E]">{product.reference}</span>
+                      {product.reference && (
+                        <>
+                          <span aria-hidden="true">·</span>
+                          <span className="font-mono text-[#A8A29E]">{product.reference}</span>
+                        </>
+                      )}
                     </div>
 
                     {/* Title */}

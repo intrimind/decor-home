@@ -51,14 +51,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [productForm, setProductForm] = useState<Partial<Product>>({
     title: '',
     category: 'luminaires',
-    price: 25000,
+    price: undefined,
     currency: 'DZD',
     dimensions: 'H 50 cm × L 30 cm × P 30 cm',
     material: 'Laiton brossé & travertin beige',
     description: '',
     badge: 'aucun',
     inStock: true,
-    reference: `DH-PIECE-${Math.floor(100 + Math.random() * 900)}`,
+    reference: '',
     images: [],
     instagramReelUrl: '',
     tiktokVideoUrl: '',
@@ -99,14 +99,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     setProductForm({
       title: '',
       category: 'luminaires',
-      price: 25000,
+      price: undefined,
       currency: 'DZD',
       dimensions: 'H 60 cm × L 40 cm',
       material: 'Travertin naturel & laiton poli',
       description: 'Pièce exclusive travaillée dans des matières brutes et intemporelles.',
       badge: 'nouveaute',
       inStock: true,
-      reference: `DH-${Math.floor(1000 + Math.random() * 9000)}`,
+      reference: '',
       images: [],
       instagramReelUrl: '',
       tiktokVideoUrl: '',
@@ -120,6 +120,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     setIsAddingNew(false);
     setProductForm({
       ...prod,
+      price: prod.price > 0 ? prod.price : undefined,
       images: prod.images ? [...prod.images] : []
     });
   };
@@ -210,24 +211,31 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   // Save product (create or update)
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!productForm.title || !productForm.category || !productForm.price) {
-      showNotification('Veuillez remplir le titre, la catégorie et le prix', 'error');
+    if (!productForm.title || !productForm.category) {
+      showNotification('Veuillez remplir le titre et la catégorie', 'error');
       return;
     }
 
     try {
+      const parsedPrice =
+        productForm.price !== undefined &&
+        productForm.price !== null &&
+        String(productForm.price).trim() !== ''
+          ? Number(productForm.price) || 0
+          : 0;
+
       const finalProduct: Product = {
         id: editingProduct ? editingProduct.id : `dh-${Date.now()}`,
         title: productForm.title || 'Nouvelle Pièce',
         category: (productForm.category as Category) || 'luminaires',
-        price: Number(productForm.price) || 0,
+        price: parsedPrice,
         currency: 'DZD',
         dimensions: productForm.dimensions || 'Non spécifiées',
         material: productForm.material || 'Matières naturelles',
         description: productForm.description || '',
         badge: (productForm.badge as BadgeType) || 'aucun',
         inStock: productForm.inStock ?? true,
-        reference: productForm.reference || `DH-${Date.now().toString().slice(-4)}`,
+        reference: (productForm.reference || '').trim(),
         images: productForm.images && productForm.images.length > 0 
           ? productForm.images 
           : ['/assets/images/hero_decor_home_salon_1793732697943.jpg'],
@@ -471,14 +479,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                   {item.title}
                                 </div>
                                 <div className="text-[11px] font-mono text-[#78716C]">
-                                  {item.reference}
+                                  {item.reference || 'Sans réf.'}
                                 </div>
                               </td>
                               <td className="py-2.5 px-4 text-[#57534E]">
                                 {item.category.replace('-', ' ')}
                               </td>
                               <td className="py-2.5 px-4 font-mono font-medium text-[#1C1917]">
-                                {new Intl.NumberFormat('fr-FR').format(item.price)} DZD
+                                {item.price > 0 ? `${new Intl.NumberFormat('fr-FR').format(item.price)} DZD` : 'Sur demande'}
                               </td>
                               <td className="py-2.5 px-4">
                                 {item.inStock ? (
@@ -725,13 +733,19 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-xs font-medium text-[#1C1917]">Tarif Showroom (en DZD) *</label>
+                        <label className="text-xs font-medium text-[#1C1917]">Tarif Showroom (en DZD)</label>
                         <input
                           type="number"
-                          required
-                          value={productForm.price || 0}
-                          onChange={(e) => setProductForm({ ...productForm, price: Number(e.target.value) })}
+                          min="0"
+                          value={productForm.price ?? ''}
+                          onChange={(e) =>
+                            setProductForm({
+                              ...productForm,
+                              price: e.target.value === '' ? undefined : Number(e.target.value),
+                            })
+                          }
                           className="w-full px-3 py-2 text-xs sm:text-sm bg-[#FAF8F5] border border-[#E8E2D8] rounded-md focus:border-[#9C5432] focus:outline-none font-mono"
+                          placeholder="ex: 25000 (laisser vide si sur demande)"
                         />
                       </div>
 
