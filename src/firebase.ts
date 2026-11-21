@@ -121,8 +121,24 @@ function normalizeStoreSettings(settings: StoreSettings): StoreSettings {
   };
 }
 
+// In-memory live caches prevent stale localStorage (e.g. after QuotaExceededError) from overwriting live Firestore state
+let memoryProducts: Product[] | null = null;
+let memorySettings: StoreSettings | null = null;
+let memoryLookbooks: LookbookScene[] | null = null;
+
+function sortProductsByRecency(list: Product[]): Product[] {
+  return [...list].sort((a, b) => {
+    const timeA = Date.parse(a.updatedAt || a.createdAt || '') || 0;
+    const timeB = Date.parse(b.updatedAt || b.createdAt || '') || 0;
+    return timeB - timeA;
+  });
+}
+
 export function getLocalProducts(): Product[] {
   const deletedIds = getDeletedProductIds();
+  if (memoryProducts !== null) {
+    return memoryProducts.filter(p => !deletedIds.includes(p.id)).map(normalizeProduct);
+  }
   try {
     const raw = localStorage.getItem(LOCAL_PRODUCTS_KEY);
     if (raw !== null) {
@@ -139,20 +155,31 @@ export function getLocalProducts(): Product[] {
 
 export function saveLocalProducts(products: Product[]): void {
   const deletedIds = getDeletedProductIds();
-  const filtered = products.filter(p => !deletedIds.includes(p.id)).map(normalizeProduct);
+  const filtered = sortProductsByRecency(
+    products.filter(p => !deletedIds.includes(p.id)).map(normalizeProduct)
+  );
+  memoryProducts = filtered;
   try {
     localStorage.setItem(LOCAL_PRODUCTS_KEY, JSON.stringify(filtered));
   } catch {
-    // ignore
+    // If localStorage quota (5MB) is exceeded, drop stale cache instead of keeping outdated items
+    try {
+      localStorage.removeItem(LOCAL_PRODUCTS_KEY);
+    } catch {
+      // ignore
+    }
   }
 }
 
 export function getLocalStoreSettings(): StoreSettings {
+  if (memorySettings !== null) {
+    return memorySettings;
+  }
   try {
     const raw = localStorage.getItem(LOCAL_SETTINGS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed.address && !parsed.address.includes('Bir Mourad')) {
+      if (!parsed.address || !parsed.address.includes('Bir Mourad')) {
         return normalizeStoreSettings(parsed);
       }
     }
@@ -163,10 +190,16 @@ export function getLocalStoreSettings(): StoreSettings {
 }
 
 export function saveLocalStoreSettings(settings: StoreSettings): void {
+  const normalized = normalizeStoreSettings(settings);
+  memorySettings = normalized;
   try {
-    localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(normalizeStoreSettings(settings)));
+    localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(normalized));
   } catch {
-    // ignore
+    try {
+      localStorage.removeItem(LOCAL_SETTINGS_KEY);
+    } catch {
+      // ignore
+    }
   }
 }
 
@@ -214,8 +247,9 @@ export function subscribeToProducts(
             deleteDoc(doc(db, colPath, d.id)).catch(() => {});
           }
         });
-        onUpdate(loaded);
-        saveLocalProducts(loaded);
+        const sorted = sortProductsByRecency(loaded);
+        saveLocalProducts(sorted);
+        onUpdate(sorted);
       }
     },
     (error) => {
@@ -364,6 +398,9 @@ function normalizeLookbook(scene: LookbookScene): LookbookScene {
 
 export function getLocalLookbooks(): LookbookScene[] {
   const deletedIds = getDeletedLookbookIds();
+  if (memoryLookbooks !== null) {
+    return memoryLookbooks.filter(s => !deletedIds.includes(s.id)).map(normalizeLookbook);
+  }
   try {
     const raw = localStorage.getItem(LOCAL_LOOKBOOKS_KEY);
     if (raw !== null) {
@@ -381,10 +418,15 @@ export function getLocalLookbooks(): LookbookScene[] {
 export function saveLocalLookbooks(scenes: LookbookScene[]): void {
   const deletedIds = getDeletedLookbookIds();
   const filtered = scenes.filter(s => !deletedIds.includes(s.id)).map(normalizeLookbook);
+  memoryLookbooks = filtered;
   try {
     localStorage.setItem(LOCAL_LOOKBOOKS_KEY, JSON.stringify(filtered));
   } catch {
-    // ignore
+    try {
+      localStorage.removeItem(LOCAL_LOOKBOOKS_KEY);
+    } catch {
+      // ignore
+    }
   }
 }
 

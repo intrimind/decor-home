@@ -74,11 +74,17 @@ export const Catalog: React.FC<CatalogProps> = ({
       }
       if (sortBy === 'price-desc') return (b.price || 0) - (a.price || 0);
       if (sortBy === 'newest') {
+        const timeA = Date.parse(a.updatedAt || a.createdAt || '') || 0;
+        const timeB = Date.parse(b.updatedAt || b.createdAt || '') || 0;
+        if (timeA !== timeB) return timeB - timeA;
         if (a.badge === 'nouveaute' && b.badge !== 'nouveaute') return -1;
         if (b.badge === 'nouveaute' && a.badge !== 'nouveaute') return 1;
         return 0;
       }
-      // default: recommended (featured first, then inStock)
+      // default: recommended — newest owner-added/updated items first, then featured, then inStock
+      const timeA = Date.parse(a.updatedAt || a.createdAt || '') || 0;
+      const timeB = Date.parse(b.updatedAt || b.createdAt || '') || 0;
+      if (timeA !== timeB) return timeB - timeA;
       if (a.featured && !b.featured) return -1;
       if (!a.featured && b.featured) return 1;
       if (a.inStock && !b.inStock) return -1;

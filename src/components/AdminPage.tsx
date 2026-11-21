@@ -312,6 +312,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         instagramReelUrl: productForm.instagramReelUrl || '',
         tiktokVideoUrl: productForm.tiktokVideoUrl || '',
         featured: productForm.featured || false,
+        createdAt: editingProduct?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
 
@@ -321,6 +322,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           ? 'Pièce mise à jour avec succès dans le catalogue !' 
           : 'Nouvelle pièce ajoutée avec succès au catalogue !'
       );
+      if (!editingProduct) {
+        setSearchQuery('');
+        setCategoryFilter('tous');
+      }
       setIsAddingNew(false);
       setEditingProduct(null);
       onRefreshData();
@@ -608,16 +613,22 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     }
   };
 
-  // Filtered products list in table
-  const filteredProducts = products.filter(item => {
-    const matchesCat = categoryFilter === 'tous' || item.category === categoryFilter;
-    const q = searchQuery.toLowerCase().trim();
-    const matchesQuery = !q || 
-      item.title.toLowerCase().includes(q) || 
-      (item.reference || '').toLowerCase().includes(q) ||
-      (item.material || '').toLowerCase().includes(q);
-    return matchesCat && matchesQuery;
-  });
+  // Filtered products list in table (newest added/modified first)
+  const filteredProducts = products
+    .filter(item => {
+      const matchesCat = categoryFilter === 'tous' || item.category === categoryFilter;
+      const q = searchQuery.toLowerCase().trim();
+      const matchesQuery = !q || 
+        item.title.toLowerCase().includes(q) || 
+        (item.reference || '').toLowerCase().includes(q) ||
+        (item.material || '').toLowerCase().includes(q);
+      return matchesCat && matchesQuery;
+    })
+    .sort((a, b) => {
+      const timeA = Date.parse(a.updatedAt || a.createdAt || '') || 0;
+      const timeB = Date.parse(b.updatedAt || b.createdAt || '') || 0;
+      return timeB - timeA;
+    });
 
   const inStockCount = products.filter(p => p.inStock).length;
   const outOfStockCount = products.length - inStockCount;
