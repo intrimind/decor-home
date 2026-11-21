@@ -351,9 +351,11 @@ export const Catalog: React.FC<CatalogProps> = ({
                     </h3>
 
                     {/* Material & Dimension preview */}
-                    <p className="text-xs text-[#78716C] line-clamp-1">
-                      {product.material}
-                    </p>
+                    {product.material && (
+                      <p className="text-xs text-[#78716C] line-clamp-1">
+                        {product.material}
+                      </p>
+                    )}
                   </div>
 
                   {/* Card Bottom: Price & Quick WhatsApp Button */}

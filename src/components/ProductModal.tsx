@@ -206,43 +206,51 @@ export const ProductModal: React.FC<ProductModalProps> = ({
               </div>
 
               {/* Description */}
-              <div className="space-y-2 min-w-0">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-[#1C1917]">
-                  L'Histoire de la Pièce
-                </h4>
-                <p className="text-xs sm:text-sm text-[#57534E] leading-relaxed break-words">
-                  {product.description}
-                </p>
-              </div>
+              {product.description && (
+                <div className="space-y-2 min-w-0">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-[#1C1917]">
+                    L'Histoire de la Pièce
+                  </h4>
+                  <p className="text-xs sm:text-sm text-[#57534E] leading-relaxed break-words">
+                    {product.description}
+                  </p>
+                </div>
+              )}
 
               {/* Technical Specifications */}
-              <div className="border-t border-b border-[#E8E2D8] py-4 space-y-3 min-w-0">
-                <div className="flex items-start gap-3 text-xs min-w-0">
-                  <Ruler className="w-4 h-4 text-[#9C5432] shrink-0 mt-0.5" />
-                  <div className="min-w-0 break-words">
-                    <span className="font-semibold text-[#1C1917]">Dimensions : </span>
-                    <span className="text-[#57534E]">{product.dimensions}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 text-xs min-w-0">
-                  <Layers className="w-4 h-4 text-[#9C5432] shrink-0 mt-0.5" />
-                  <div className="min-w-0 break-words">
-                    <span className="font-semibold text-[#1C1917]">Matières & Finitions : </span>
-                    <span className="text-[#57534E]">{product.material}</span>
-                  </div>
-                </div>
-
-                {product.reference && (
-                  <div className="flex items-start gap-3 text-xs min-w-0">
-                    <Tag className="w-4 h-4 text-[#9C5432] shrink-0 mt-0.5" />
-                    <div className="min-w-0 break-words">
-                      <span className="font-semibold text-[#1C1917]">Référence Unique : </span>
-                      <span className="font-mono text-[#57534E]">{product.reference}</span>
+              {(product.dimensions || product.material || product.reference) && (
+                <div className="border-t border-b border-[#E8E2D8] py-4 space-y-3 min-w-0">
+                  {product.dimensions && (
+                    <div className="flex items-start gap-3 text-xs min-w-0">
+                      <Ruler className="w-4 h-4 text-[#9C5432] shrink-0 mt-0.5" />
+                      <div className="min-w-0 break-words">
+                        <span className="font-semibold text-[#1C1917]">Dimensions : </span>
+                        <span className="text-[#57534E]">{product.dimensions}</span>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+
+                  {product.material && (
+                    <div className="flex items-start gap-3 text-xs min-w-0">
+                      <Layers className="w-4 h-4 text-[#9C5432] shrink-0 mt-0.5" />
+                      <div className="min-w-0 break-words">
+                        <span className="font-semibold text-[#1C1917]">Matières & Finitions : </span>
+                        <span className="text-[#57534E]">{product.material}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {product.reference && (
+                    <div className="flex items-start gap-3 text-xs min-w-0">
+                      <Tag className="w-4 h-4 text-[#9C5432] shrink-0 mt-0.5" />
+                      <div className="min-w-0 break-words">
+                        <span className="font-semibold text-[#1C1917]">Référence Unique : </span>
+                        <span className="font-mono text-[#57534E]">{product.reference}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Primary Action Button: WhatsApp Pre-filled */}
               <div className="space-y-3 pt-2">
