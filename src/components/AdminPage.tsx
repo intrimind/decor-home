@@ -97,6 +97,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   // Product Editing / Adding State
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
+  const [targetScrollProductId, setTargetScrollProductId] = useState<string | null>(null);
+  const [highlightedProductId, setHighlightedProductId] = useState<string | null>(null);
+  const savedProductListScrollRef = useRef<number | null>(null);
   const [productForm, setProductForm] = useState<Partial<Product>>({
     title: '',
     category: 'luminaires',
@@ -131,6 +134,30 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   useEffect(() => {
     setSettingsForm({ ...settings });
   }, [settings]);
+
+  useEffect(() => {
+    if (activeTab !== 'products' || isAddingNew || editingProduct || !targetScrollProductId) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      const rowEl = document.getElementById(`admin-product-row-${targetScrollProductId}`);
+      if (rowEl) {
+        rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      setTargetScrollProductId(null);
+    }, 100);
+
+    return () => window.clearTimeout(timer);
+  }, [activeTab, isAddingNew, editingProduct, targetScrollProductId, products]);
+
+  useEffect(() => {
+    if (!highlightedProductId) return;
+    const timer = window.setTimeout(() => {
+      setHighlightedProductId(null);
+    }, 3500);
+    return () => window.clearTimeout(timer);
+  }, [highlightedProductId]);
 
   useEffect(() => {
     getAdminSession().then(async (session) => {
@@ -205,6 +232,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
   // Start adding a new product
   const startAddNew = () => {
+    savedProductListScrollRef.current = window.scrollY;
     setIsAddingNew(true);
     setEditingProduct(null);
     setProductForm({
@@ -228,6 +256,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
   // Start editing existing product
   const startEditProduct = (prod: Product) => {
+    savedProductListScrollRef.current = window.scrollY;
     setEditingProduct(prod);
     setIsAddingNew(false);
     setProductForm({
@@ -236,6 +265,23 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       images: prod.images ? [...prod.images] : []
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Cancel adding/editing and return to the originating position
+  const cancelProductForm = () => {
+    const editedId = editingProduct?.id || null;
+    const prevScroll = savedProductListScrollRef.current;
+    setIsAddingNew(false);
+    setEditingProduct(null);
+    if (editedId) {
+      setTargetScrollProductId(editedId);
+      setHighlightedProductId(editedId);
+    } else if (prevScroll !== null) {
+      window.setTimeout(() => {
+        window.scrollTo({ top: prevScroll, behavior: 'smooth' });
+      }, 80);
+    }
+    savedProductListScrollRef.current = null;
   };
 
   // Handle file uploads from PC or Mobile
@@ -369,7 +415,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       if (!editingProduct) {
         setSearchQuery('');
         setCategoryFilter('tous');
+      } else if (categoryFilter !== 'tous' && categoryFilter !== finalProduct.category) {
+        setCategoryFilter('tous');
       }
+      savedProductListScrollRef.current = null;
+      setTargetScrollProductId(finalProduct.id);
+      setHighlightedProductId(finalProduct.id);
       setIsAddingNew(false);
       setEditingProduct(null);
       onRefreshData();
@@ -1009,7 +1060,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                               </tr>
                             ) : (
                               filteredProducts.map((item) => (
-                                <tr key={item.id} className="hover:bg-[#FAF8F5]/80 transition-colors">
+                                <tr
+                                  key={item.id}
+                                  id={`admin-product-row-${item.id}`}
+                                  className={`scroll-mt-24 transition-colors duration-500 ${
+                                    highlightedProductId === item.id
+                                      ? 'bg-[#FAF2E8] ring-2 ring-inset ring-[#9C5432]/40'
+                                      : 'hover:bg-[#FAF8F5]/80'
+                                  }`}
+                                >
                                   <td className="py-3 px-4">
                                     <div className="relative w-14 h-12 rounded-lg overflow-hidden border border-[#E8E2D8] bg-[#FAF8F5]">
                                       <img
@@ -1112,10 +1171,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       </div>
                       <button
                         type="button"
-                        onClick={() => {
-                          setIsAddingNew(false);
-                          setEditingProduct(null);
-                        }}
+                        onClick={cancelProductForm}
                         className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-[#78716C] hover:text-[#1C1917] bg-[#FAF8F5] hover:bg-[#EFECE6] border border-[#E8E2D8] rounded-md transition-colors cursor-pointer"
                       >
                         <ArrowLeft className="w-3.5 h-3.5" />
@@ -1447,10 +1503,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       <div className="flex items-center justify-end gap-3 pt-6 border-t border-[#E8E2D8]">
                         <button
                           type="button"
-                          onClick={() => {
-                            setIsAddingNew(false);
-                            setEditingProduct(null);
-                          }}
+                          onClick={cancelProductForm}
                           className="px-5 py-2.5 text-xs font-medium text-[#78716C] hover:text-[#1C1917] transition-colors cursor-pointer"
                         >
                           Annuler
