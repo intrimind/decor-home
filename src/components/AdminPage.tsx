@@ -131,22 +131,76 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const heroFileInputRef = useRef<HTMLInputElement>(null);
   const [isProcessingSiteImage, setIsProcessingSiteImage] = useState<'hero' | 'showroom' | null>(null);
 
+  const scrollToAdminSection = (
+    elementId: string,
+    gap = 20,
+    behavior: ScrollBehavior = 'auto'
+  ) => {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    const headerEl = document.getElementById('admin-sticky-header');
+    const headerHeight = headerEl ? headerEl.getBoundingClientRect().height : 72;
+    const targetY = el.getBoundingClientRect().top + window.scrollY - headerHeight - gap;
+    window.scrollTo({ top: Math.max(0, targetY), behavior });
+  };
+
   useEffect(() => {
     setSettingsForm({ ...settings });
   }, [settings]);
 
+  // Open dashboard directly at the navigation/catalog section (skip KPI cards above)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const timer = window.setTimeout(() => {
+      if (!isAddingNew && !editingProduct && !isAddingLookbook && !editingLookbook) {
+        scrollToAdminSection('admin-tabs-bar', 20, 'auto');
+      }
+    }, 60);
+    return () => window.clearTimeout(timer);
+  }, [isAuthenticated]);
+
+  // Open product form directly at the top of the form below sticky header
+  useEffect(() => {
+    if (!isAuthenticated || activeTab !== 'products' || (!isAddingNew && !editingProduct)) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      scrollToAdminSection('admin-product-form', 20, 'auto');
+    }, 40);
+    return () => window.clearTimeout(timer);
+  }, [isAuthenticated, activeTab, isAddingNew, editingProduct]);
+
+  // Open lookbook form directly at the top of the form below sticky header
+  useEffect(() => {
+    if (!isAuthenticated || activeTab !== 'lookbooks' || (!isAddingLookbook && !editingLookbook)) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      scrollToAdminSection('admin-lookbook-form', 20, 'auto');
+    }, 40);
+    return () => window.clearTimeout(timer);
+  }, [isAuthenticated, activeTab, isAddingLookbook, editingLookbook]);
+
+  // After saving or cancelling an article, return cleanly to the catalog/article level
   useEffect(() => {
     if (activeTab !== 'products' || isAddingNew || editingProduct || !targetScrollProductId) {
       return;
     }
 
     const timer = window.setTimeout(() => {
-      const rowEl = document.getElementById(`admin-product-row-${targetScrollProductId}`);
-      if (rowEl) {
-        rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const rowIndex = filteredProducts.findIndex((p) => p.id === targetScrollProductId);
+      if (rowIndex >= 0 && rowIndex <= 2) {
+        scrollToAdminSection('admin-tabs-bar', 20, 'auto');
+      } else {
+        const rowEl = document.getElementById(`admin-product-row-${targetScrollProductId}`);
+        if (rowEl) {
+          rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          scrollToAdminSection('admin-tabs-bar', 20, 'auto');
+        }
       }
       setTargetScrollProductId(null);
-    }, 100);
+    }, 80);
 
     return () => window.clearTimeout(timer);
   }, [activeTab, isAddingNew, editingProduct, targetScrollProductId, products]);
@@ -251,7 +305,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       tiktokVideoUrl: '',
       featured: false,
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Start editing existing product
@@ -264,7 +317,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       price: prod.price > 0 ? prod.price : undefined,
       images: prod.images ? [...prod.images] : []
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Cancel adding/editing and return to the originating position
@@ -276,10 +328,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     if (editedId) {
       setTargetScrollProductId(editedId);
       setHighlightedProductId(editedId);
-    } else if (prevScroll !== null) {
+    } else {
       window.setTimeout(() => {
-        window.scrollTo({ top: prevScroll, behavior: 'smooth' });
-      }, 80);
+        if (prevScroll !== null && prevScroll > 0) {
+          window.scrollTo({ top: prevScroll, behavior: 'auto' });
+        } else {
+          scrollToAdminSection('admin-tabs-bar', 20, 'auto');
+        }
+      }, 60);
     }
     savedProductListScrollRef.current = null;
   };
@@ -525,7 +581,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setPendingHotspotPos(null);
     setSelectedHotspotProductId('');
     setHotspotCustomLabel('');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Start editing existing lookbook
@@ -540,7 +595,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setPendingHotspotPos(null);
     setSelectedHotspotProductId('');
     setHotspotCustomLabel('');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Handle Lookbook Image upload from PC / Mobile
@@ -689,7 +743,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       setIsAddingLookbook(false);
       setEditingLookbook(null);
       onRefreshData();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.setTimeout(() => {
+        scrollToAdminSection('admin-tabs-bar', 20, 'auto');
+      }, 60);
     } catch (err) {
       console.error(err);
       showNotification(getSaveErrorMessage(err, "Erreur de synchronisation lors de l'enregistrement du Lookbook."), 'error');
@@ -734,7 +790,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     <div className="min-h-screen bg-[#F5F2EB] text-[#1C1917] flex flex-col font-sans">
       
       {/* Top Admin Navigation Header */}
-      <header className="sticky top-0 z-40 bg-[#1C1917] text-[#FAF8F5] border-b border-[#292524] shadow-md">
+      <header id="admin-sticky-header" className="sticky top-0 z-40 bg-[#1C1917] text-[#FAF8F5] border-b border-[#292524] shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
           
           <div className="flex items-center gap-4">
@@ -926,7 +982,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             </div>
 
             {/* Navigation Tabs Bar */}
-            <div className="bg-white rounded-xl border border-[#E8E2D8] shadow-xs p-1.5 flex items-center justify-between flex-wrap gap-2">
+            <div id="admin-tabs-bar" className="bg-white rounded-xl border border-[#E8E2D8] shadow-xs p-1.5 flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => {
@@ -1158,7 +1214,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   </div>
                 ) : (
                   /* PRODUCT EDIT / ADD FORM */
-                  <div className="bg-white p-6 sm:p-8 rounded-2xl border border-[#E8E2D8] shadow-sm max-w-4xl mx-auto space-y-8">
+                  <div id="admin-product-form" className="bg-white p-6 sm:p-8 rounded-2xl border border-[#E8E2D8] shadow-sm max-w-4xl mx-auto space-y-8">
                     
                     <div className="flex items-center justify-between pb-6 border-b border-[#E8E2D8]">
                       <div>
@@ -1651,7 +1707,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   </div>
                 ) : (
                   /* LOOKBOOK CREATE / EDIT FORM */
-                  <div className="bg-white p-6 sm:p-8 rounded-2xl border border-[#E8E2D8] shadow-sm max-w-4xl mx-auto space-y-8">
+                  <div id="admin-lookbook-form" className="bg-white p-6 sm:p-8 rounded-2xl border border-[#E8E2D8] shadow-sm max-w-4xl mx-auto space-y-8">
                     <div className="flex items-center justify-between pb-4 border-b border-[#E8E2D8]">
                       <div>
                         <span className="text-[10px] font-bold uppercase tracking-widest text-[#9C5432]">
