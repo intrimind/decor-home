@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { Product, StoreSettings, Category, BadgeType } from '../types';
 import { CATEGORIES } from './Catalog';
-import { saveProductToFirestore, deleteProductFromFirestore, saveStoreSettingsToFirestore, resetCatalogToDefault } from '../firebase';
+import { saveProductToSupabase, deleteProductFromSupabase, saveStoreSettingsToSupabase, resetCatalogToDefault } from '../supabase';
 import { processImageFile } from '../utils/imageUtils';
 
 interface AdminModalProps {
@@ -245,7 +245,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
         updatedAt: new Date().toISOString()
       };
 
-      await saveProductToFirestore(finalProduct);
+      await saveProductToSupabase(finalProduct);
       showNotification(
         editingProduct 
           ? 'Pièce mise à jour avec succès dans le catalogue !' 
@@ -264,7 +264,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const handleDeleteProduct = async (productId: string) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer définitivement cette pièce du catalogue showroom ?')) {
       try {
-        await deleteProductFromFirestore(productId);
+        await deleteProductFromSupabase(productId);
         showNotification('Produit supprimé du catalogue');
         onRefreshData();
       } catch (err) {
@@ -278,7 +278,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await saveStoreSettingsToFirestore(settingsForm);
+      await saveStoreSettingsToSupabase(settingsForm);
       showNotification('Coordonnées de la boutique enregistrées avec succès !');
       onRefreshData();
     } catch (err) {

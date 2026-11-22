@@ -2,14 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Product, StoreSettings, LookbookScene } from './types';
 import { INITIAL_PRODUCTS, DEFAULT_STORE_SETTINGS, LOOKBOOK_SCENES } from './data/initialProducts';
 import { 
-  testConnection, 
-  subscribeToProducts, 
-  subscribeToStoreSettings, 
-  subscribeToLookbooks,
+  subscribeToStoreData,
+  fetchStoreDataFromSupabase,
   getLocalProducts, 
   getLocalStoreSettings,
   getLocalLookbooks
-} from './firebase';
+} from './supabase';
 
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
@@ -45,32 +43,28 @@ export default function App() {
     return 'public';
   });
 
-  // Initialize connection validation & Firestore subscriptions
+  // Initialize Supabase data load & realtime subscriptions
   useEffect(() => {
-    testConnection();
-
-    const unsubProducts = subscribeToProducts((updated) => {
-      if (Array.isArray(updated)) {
-        setProducts(updated);
-      }
-    });
-
-    const unsubSettings = subscribeToStoreSettings((updated) => {
-      if (updated) {
-        setSettings(updated);
-      }
-    });
-
-    const unsubLookbooks = subscribeToLookbooks((updated) => {
-      if (Array.isArray(updated)) {
-        setLookbooks(updated);
-      }
+    const unsubscribe = subscribeToStoreData({
+      onProducts: (updated) => {
+        if (Array.isArray(updated)) {
+          setProducts(updated);
+        }
+      },
+      onSettings: (updated) => {
+        if (updated) {
+          setSettings(updated);
+        }
+      },
+      onLookbooks: (updated) => {
+        if (Array.isArray(updated)) {
+          setLookbooks(updated);
+        }
+      },
     });
 
     return () => {
-      unsubProducts();
-      unsubSettings();
-      unsubLookbooks();
+      unsubscribe();
     };
   }, []);
 
@@ -160,6 +154,11 @@ export default function App() {
     setProducts(getLocalProducts());
     setSettings(getLocalStoreSettings());
     setLookbooks(getLocalLookbooks());
+    fetchStoreDataFromSupabase().then((res) => {
+      setProducts(res.products);
+      setSettings(res.settings);
+      setLookbooks(res.lookbooks);
+    });
   };
 
   // WhatsApp Floating CTA for visitors on mobile

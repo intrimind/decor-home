@@ -28,13 +28,19 @@ import {
 import { Product, StoreSettings, Category, BadgeType, LookbookScene, LookbookHotspot } from '../types';
 import { CATEGORIES } from './Catalog';
 import { 
-  saveProductToFirestore, 
-  deleteProductFromFirestore, 
-  saveStoreSettingsToFirestore, 
+  saveProductToSupabase, 
+  deleteProductFromSupabase, 
+  saveStoreSettingsToSupabase, 
   resetCatalogToDefault,
-  saveLookbookToFirestore,
-  deleteLookbookFromFirestore
-} from '../firebase';
+  saveLookbookToSupabase,
+  deleteLookbookFromSupabase,
+  uploadImageToStorage,
+  signInAdmin,
+  signOutAdmin,
+  getAdminSession,
+  onAdminAuthChange,
+  ensureInitialSeedOnAdminLogin
+} from '../supabase';
 import { processImageFile } from '../utils/imageUtils';
 
 interface AdminPageProps {
@@ -52,12 +58,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   onRefreshData,
   onNavigatePublic,
 }) => {
-  // Authentication State
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return sessionStorage.getItem('decor_home_admin_auth') === 'true';
-  });
-  const [pinCode, setPinCode] = useState('');
-  const [authError, setAuthError] = useState(false);
+  // Authentication State (Supabase Auth)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   // Active Tab: 'products' | 'lookbooks' | 'settings' | 'reset'
   const [activeTab, setActiveTab] = useState<'products' | 'lookbooks' | 'settings' | 'reset'>('products');
@@ -126,22 +132,56 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setSettingsForm({ ...settings });
   }, [settings]);
 
-  // Handle Login
-  const handleLogin = (e: React.FormEvent) => {
+  useEffect(() => {
+    getAdminSession().then(async (session) => {
+      if (session) {
+        setIsAuthenticated(true);
+        try {
+          const seeded = await ensureInitialSeedOnAdminLogin();
+          if (seeded) onRefreshData();
+        } catch (err) {
+          console.warn('Initial seed check:', err);
+        }
+      }
+    });
+
+    const unsub = onAdminAuthChange((session) => {
+      setIsAuthenticated(Boolean(session));
+    });
+
+    return () => unsub();
+  }, []);
+
+  // Handle Login via Supabase Auth
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pinCode === 'decor2026' || pinCode === 'admin' || pinCode === '1234') {
+    setIsLoggingIn(true);
+    setAuthError(null);
+    try {
+      await signInAdmin(adminEmail, adminPassword);
       setIsAuthenticated(true);
-      sessionStorage.setItem('decor_home_admin_auth', 'true');
-      setAuthError(false);
-    } else {
-      setAuthError(true);
+      try {
+        const seeded = await ensureInitialSeedOnAdminLogin();
+        if (seeded) onRefreshData();
+      } catch (seedErr) {
+        console.warn('Seed error:', seedErr);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('SUPABASE_NOT_CONFIGURED')) {
+        setAuthError('Supabase non configuré : vérifiez les variables d’environnement.');
+      } else {
+        setAuthError('Email ou mot de passe incorrect.');
+      }
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOutAdmin();
     setIsAuthenticated(false);
-    sessionStorage.removeItem('decor_home_admin_auth');
-    setPinCode('');
+    setAdminPassword('');
   };
 
   const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
@@ -151,11 +191,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
   const getSaveErrorMessage = (err: unknown, fallback: string) => {
     const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes('DOCUMENT_TOO_LARGE')) {
-      return msg.replace('DOCUMENT_TOO_LARGE: ', '');
+    if (msg.includes('STORAGE_ERROR') || msg.toLowerCase().includes('bucket')) {
+      return "Stockage photo 'decor-images' non configuré ou accès refusé dans Supabase.";
     }
-    if (msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('resource-exhausted') || msg.includes('429')) {
-      return 'Quota quotidien gratuit Firestore dépassé : réessayez demain après la réinitialisation.';
+    if (msg.includes('permission denied') || msg.includes('42501') || msg.toLowerCase().includes('row-level security')) {
+      return 'Accès refusé par Supabase : vérifiez votre connexion admin et les règles SQL.';
     }
     if (msg.includes('offline') || msg.includes('network') || msg.includes('Failed to fetch')) {
       return 'Connexion au serveur impossible. Vérifiez votre réseau ou désactivez votre bloqueur.';
@@ -208,8 +248,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         if (file.type.startsWith('image/')) {
-          const dataUrl = await processImageFile(file);
-          processedUrls.push(dataUrl);
+          const dataUrl = await processImageFile(file, 1200, 1200, 0.8, 280_000);
+          const publicUrl = await uploadImageToStorage(dataUrl, 'products');
+          processedUrls.push(publicUrl);
         }
       }
 
@@ -219,11 +260,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           ...prev,
           images: [...currentImages, ...processedUrls]
         }));
-        showNotification(`${processedUrls.length} photo(s) importée(s) avec succès depuis votre appareil !`);
+        showNotification(`${processedUrls.length} photo(s) téléversée(s) avec succès !`);
       }
     } catch (err) {
       console.error(err);
-      showNotification("Erreur lors de l'import des photos", 'error');
+      showNotification(getSaveErrorMessage(err, "Erreur lors de l'envoi des photos"), 'error');
     } finally {
       setIsProcessingImages(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -319,7 +360,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         updatedAt: new Date().toISOString()
       };
 
-      await saveProductToFirestore(finalProduct);
+      await saveProductToSupabase(finalProduct);
       showNotification(
         editingProduct 
           ? 'Pièce mise à jour avec succès dans le catalogue !' 
@@ -342,12 +383,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const handleDeleteProduct = async (productId: string) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer définitivement cette pièce du catalogue showroom ?')) {
       try {
-        await deleteProductFromFirestore(productId);
+        await deleteProductFromSupabase(productId);
         showNotification('Produit supprimé du catalogue');
         onRefreshData();
       } catch (err) {
         console.error(err);
-        showNotification('Erreur lors de la suppression', 'error');
+        showNotification(getSaveErrorMessage(err, 'Erreur lors de la suppression'), 'error');
       }
     }
   };
@@ -356,12 +397,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const handleToggleStock = async (prod: Product) => {
     try {
       const updated = { ...prod, inStock: !prod.inStock, updatedAt: new Date().toISOString() };
-      await saveProductToFirestore(updated);
+      await saveProductToSupabase(updated);
       showNotification(updated.inStock ? 'Pièce marquée En Stock' : 'Pièce marquée Sur Commande');
       onRefreshData();
     } catch (err) {
       console.error(err);
-      showNotification('Erreur mise à jour stock', 'error');
+      showNotification(getSaveErrorMessage(err, 'Erreur mise à jour stock'), 'error');
     }
   };
 
@@ -370,10 +411,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     if (!files || files.length === 0) return;
     setIsProcessingSiteImage(target);
     try {
-      const processed = await processImageFile(files[0], 1200, 800, 0.75, 190_000);
+      const processed = await processImageFile(files[0], 1440, 960, 0.82, 350_000);
+      const publicUrl = await uploadImageToStorage(processed, 'site');
       setSettingsForm(prev => ({
         ...prev,
-        [target === 'hero' ? 'heroImage' : 'showroomImage']: processed
+        [target === 'hero' ? 'heroImage' : 'showroomImage']: publicUrl
       }));
       showNotification(
         target === 'showroom'
@@ -382,7 +424,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       );
     } catch (err) {
       console.error(err);
-      showNotification("Impossible de traiter l'image sélectionnée", 'error');
+      showNotification(getSaveErrorMessage(err, "Impossible d'envoyer l'image sélectionnée"), 'error');
     } finally {
       setIsProcessingSiteImage(null);
       if (showroomFileInputRef.current) showroomFileInputRef.current.value = '';
@@ -394,7 +436,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await saveStoreSettingsToFirestore(settingsForm);
+      await saveStoreSettingsToSupabase(settingsForm);
       showNotification('Coordonnées et images enregistrées avec succès !');
       onRefreshData();
     } catch (err) {
@@ -456,15 +498,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setIsProcessingLookbookImage(true);
     try {
       const file = files[0];
-      const processed = await processImageFile(file, 1400, 1050, 0.78, 280_000);
+      const processed = await processImageFile(file, 1600, 1200, 0.82, 400_000);
+      const publicUrl = await uploadImageToStorage(processed, 'lookbooks');
       setLookbookForm(prev => ({
         ...prev,
-        image: processed
+        image: publicUrl
       }));
-      showNotification('Photo d\'ambiance importée avec succès !');
+      showNotification('Photo d\'ambiance téléversée avec succès !');
     } catch (err) {
       console.error(err);
-      showNotification('Impossible de charger cette image', 'error');
+      showNotification(getSaveErrorMessage(err, 'Impossible de charger cette image'), 'error');
     } finally {
       setIsProcessingLookbookImage(false);
       if (lookbookFileInputRef.current) {
@@ -590,7 +633,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         hotspots: lookbookForm.hotspots || []
       };
 
-      await saveLookbookToFirestore(finalScene);
+      await saveLookbookToSupabase(finalScene);
       showNotification('Ambiance Lookbook enregistrée avec succès !');
       setIsAddingLookbook(false);
       setEditingLookbook(null);
@@ -606,12 +649,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const handleDeleteLookbook = async (sceneId: string, sceneTitle: string) => {
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer le Lookbook "${sceneTitle}" ?`)) {
       try {
-        await deleteLookbookFromFirestore(sceneId);
+        await deleteLookbookFromSupabase(sceneId);
         showNotification('Lookbook supprimé');
         onRefreshData();
       } catch (err) {
         console.error(err);
-        showNotification('Erreur lors de la suppression', 'error');
+        showNotification(getSaveErrorMessage(err, 'Erreur lors de la suppression'), 'error');
       }
     }
   };
@@ -724,33 +767,47 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               <form onSubmit={handleLogin} className="space-y-4 pt-2">
                 <div className="text-left space-y-1.5">
                   <label className="text-xs font-semibold uppercase tracking-wider text-[#57534E]">
-                    Code d'Accès Administrateur
+                    Email Administrateur
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    autoComplete="email"
+                    value={adminEmail}
+                    onChange={(e) => setAdminEmail(e.target.value)}
+                    placeholder="ex: intrimind@gmail.com"
+                    className="w-full text-sm py-3 px-4 bg-[#FAF8F5] border border-[#D6CEBE] rounded-lg focus:outline-none focus:border-[#9C5432] focus:ring-1 focus:ring-[#9C5432]"
+                    autoFocus
+                  />
+                </div>
+
+                <div className="text-left space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-[#57534E]">
+                    Mot de passe
                   </label>
                   <input
                     type="password"
-                    value={pinCode}
-                    onChange={(e) => setPinCode(e.target.value)}
-                    placeholder="Entrez votre mot de passe (ex: decor2026)"
-                    className="w-full text-center tracking-widest text-lg py-3 px-4 bg-[#FAF8F5] border border-[#D6CEBE] rounded-lg focus:outline-none focus:border-[#9C5432] focus:ring-1 focus:ring-[#9C5432]"
-                    autoFocus
+                    required
+                    autoComplete="current-password"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    placeholder="Entrez votre mot de passe"
+                    className="w-full text-sm py-3 px-4 bg-[#FAF8F5] border border-[#D6CEBE] rounded-lg focus:outline-none focus:border-[#9C5432] focus:ring-1 focus:ring-[#9C5432]"
                   />
                   {authError && (
                     <p className="text-xs text-rose-600 font-medium text-center pt-1">
-                      Code d'accès incorrect. Veuillez réessayer.
+                      {authError}
                     </p>
                   )}
                 </div>
 
-                <div className="p-3 bg-[#FAF8F5] rounded-lg text-[11px] text-[#78716C] border border-[#E8E2D8] text-left">
-                  <span>💡 Code d'accès par défaut : </span>
-                  <strong className="text-[#1C1917] font-mono">decor2026</strong>
-                </div>
-
                 <button
                   type="submit"
-                  className="w-full py-3.5 bg-[#1C1917] hover:bg-[#9C5432] text-white text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors cursor-pointer shadow-md"
+                  disabled={isLoggingIn}
+                  className="w-full py-3.5 bg-[#1C1917] hover:bg-[#9C5432] disabled:opacity-60 text-white text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors cursor-pointer shadow-md flex items-center justify-center gap-2"
                 >
-                  Accéder au Tableau de Bord
+                  {isLoggingIn && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>{isLoggingIn ? 'Connexion en cours...' : 'Accéder au Tableau de Bord'}</span>
                 </button>
               </form>
 
