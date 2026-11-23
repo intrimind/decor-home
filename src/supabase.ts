@@ -473,14 +473,42 @@ export async function getAdminSession(): Promise<Session | null> {
   return data.session;
 }
 
-export function onAdminAuthChange(callback: (session: Session | null) => void): () => void {
+export function onAdminAuthChange(
+  callback: (session: Session | null, event?: string) => void
+): () => void {
   if (!supabase) return () => {};
-  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-    callback(session);
+  const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    callback(session, event);
   });
   return () => {
     data.subscription.unsubscribe();
   };
+}
+
+export async function updateAdminPassword(newPassword: string): Promise<void> {
+  if (!supabase) {
+    throw new Error('SUPABASE_NOT_CONFIGURED');
+  }
+  const { error } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+export async function sendAdminPasswordReset(email: string): Promise<void> {
+  if (!supabase) {
+    throw new Error('SUPABASE_NOT_CONFIGURED');
+  }
+  const redirectTo =
+    typeof window !== 'undefined' ? `${window.location.origin}/?admin=1` : undefined;
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo,
+  });
+  if (error) {
+    throw new Error(error.message);
+  }
 }
 
 // Upload compressed data URL image to Supabase Storage and return public URL

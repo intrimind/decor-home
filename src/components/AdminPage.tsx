@@ -23,7 +23,9 @@ import {
   Eye,
   Sparkles,
   MapPin,
-  Tag
+  Tag,
+  KeyRound,
+  EyeOff
 } from 'lucide-react';
 import { Product, StoreSettings, Category, BadgeType, LookbookScene, LookbookHotspot } from '../types';
 import { CATEGORIES } from './Catalog';
@@ -39,7 +41,9 @@ import {
   signOutAdmin,
   getAdminSession,
   onAdminAuthChange,
-  ensureInitialSeedOnAdminLogin
+  ensureInitialSeedOnAdminLogin,
+  updateAdminPassword,
+  sendAdminPasswordReset
 } from '../supabase';
 import { processImageFile } from '../utils/imageUtils';
 
@@ -64,6 +68,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [adminPassword, setAdminPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [resetEmailSent, setResetEmailSent] = useState<string | null>(null);
+  const [isSendingReset, setIsSendingReset] = useState(false);
+
+  // Change Password State (Inside Admin)
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [passwordFeedback, setPasswordFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // Active Tab: 'products' | 'lookbooks' | 'settings' | 'reset'
   const [activeTab, setActiveTab] = useState<'products' | 'lookbooks' | 'settings' | 'reset'>('products');
@@ -226,8 +239,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       }
     });
 
-    const unsub = onAdminAuthChange((session) => {
+    const unsub = onAdminAuthChange((session, event) => {
       setIsAuthenticated(Boolean(session));
+      if (event === 'PASSWORD_RECOVERY') {
+        setActiveTab('reset');
+        setPasswordFeedback({
+          message: 'Lien de récupération validé : choisissez votre nouveau mot de passe ci-dessous.',
+          type: 'success',
+        });
+      }
     });
 
     return () => unsub();
@@ -238,6 +258,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     e.preventDefault();
     setIsLoggingIn(true);
     setAuthError(null);
+    setResetEmailSent(null);
     try {
       await signInAdmin(adminEmail, adminPassword);
       setIsAuthenticated(true);
@@ -256,6 +277,74 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       }
     } finally {
       setIsLoggingIn(false);
+    }
+  };
+
+  // Handle Forgot Password (send Supabase reset email)
+  const handleForgotPassword = async () => {
+    if (!adminEmail.trim()) {
+      setAuthError("Saisissez d'abord votre email administrateur ci-dessus.");
+      return;
+    }
+    setIsSendingReset(true);
+    setAuthError(null);
+    setResetEmailSent(null);
+    try {
+      await sendAdminPasswordReset(adminEmail);
+      setResetEmailSent(`Un lien de réinitialisation vient d'être envoyé à ${adminEmail.trim()}.`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.toLowerCase().includes('rate limit')) {
+        setAuthError('Veuillez patienter quelques instants avant de renvoyer un e-mail.');
+      } else {
+        setAuthError("Impossible d'envoyer l'e-mail de réinitialisation. Vérifiez l'adresse.");
+      }
+    } finally {
+      setIsSendingReset(false);
+    }
+  };
+
+  // Handle Change Password while logged in
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordFeedback(null);
+
+    if (newPassword.length < 6) {
+      setPasswordFeedback({
+        message: 'Le mot de passe doit contenir au moins 6 caractères.',
+        type: 'error',
+      });
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setPasswordFeedback({
+        message: 'Les deux mots de passe ne correspondent pas.',
+        type: 'error',
+      });
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    try {
+      await updateAdminPassword(newPassword);
+      setNewPassword('');
+      setConfirmNewPassword('');
+      setPasswordFeedback({
+        message: 'Mot de passe administrateur mis à jour avec succès !',
+        type: 'success',
+      });
+      showNotification('Mot de passe mis à jour avec succès !');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setPasswordFeedback({
+        message: msg.includes('same_password')
+          ? 'Le nouveau mot de passe doit être différent de l’ancien.'
+          : 'Erreur lors de la mise à jour du mot de passe. Reconnectez-vous puis réessayez.',
+        type: 'error',
+      });
+    } finally {
+      setIsUpdatingPassword(false);
     }
   };
 
@@ -889,9 +978,19 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 </div>
 
                 <div className="text-left space-y-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-[#57534E]">
-                    Mot de passe
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-[#57534E]">
+                      Mot de passe
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      disabled={isSendingReset}
+                      className="text-[11px] font-medium text-[#9C5432] hover:underline cursor-pointer disabled:opacity-60"
+                    >
+                      {isSendingReset ? 'Envoi...' : 'Mot de passe oublié ?'}
+                    </button>
+                  </div>
                   <input
                     type="password"
                     required
@@ -904,6 +1003,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   {authError && (
                     <p className="text-xs text-rose-600 font-medium text-center pt-1">
                       {authError}
+                    </p>
+                  )}
+                  {resetEmailSent && (
+                    <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2 font-medium text-center mt-2">
+                      {resetEmailSent}
                     </p>
                   )}
                 </div>
@@ -1028,13 +1132,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
                 <button
                   onClick={() => setActiveTab('reset')}
-                  className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+                  className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
                     activeTab === 'reset'
                       ? 'bg-[#1C1917] text-white shadow-sm'
                       : 'text-[#78716C] hover:text-[#1C1917] hover:bg-[#FAF8F5]'
                   }`}
                 >
-                  Maintenance & Données
+                  <KeyRound className="w-3.5 h-3.5" />
+                  <span>Sécurité & Maintenance</span>
                 </button>
               </div>
 
@@ -2366,17 +2471,108 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               </div>
             )}
 
-            {/* TAB 3: MAINTENANCE & DATA RESET */}
+            {/* TAB 3: SECURITY & MAINTENANCE */}
             {activeTab === 'reset' && (
               <div className="bg-white p-6 sm:p-8 rounded-2xl border border-[#E8E2D8] shadow-sm max-w-3xl mx-auto space-y-6">
                 <div>
                   <h2 className="font-serif text-2xl font-bold text-[#1C1917]">
-                    Maintenance & Données du Catalogue
+                    Sécurité & Maintenance du Catalogue
                   </h2>
                   <p className="text-xs text-[#78716C] mt-1">
-                    Gestion des données et outils de restauration si nécessaire.
+                    Modifiez votre mot de passe administrateur ou gérez la restauration des données.
                   </p>
                 </div>
+
+                {/* Change Admin Password Card */}
+                <form
+                  onSubmit={handleUpdatePassword}
+                  className="p-6 rounded-xl border border-[#E8E2D8] bg-[#FAF8F5] space-y-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-white border border-[#E8E2D8] flex items-center justify-center shrink-0">
+                      <KeyRound className="w-4 h-4 text-[#9C5432]" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-[#1C1917] uppercase tracking-wide">
+                        Changer mon Mot de Passe Administrateur
+                      </h3>
+                      <p className="text-xs text-[#78716C] mt-0.5">
+                        Le changement prend effet immédiatement sur tous vos appareils.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold uppercase tracking-wider text-[#57534E]">
+                        Nouveau mot de passe (min. 6 caractères)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showNewPassword ? 'text' : 'password'}
+                          required
+                          minLength={6}
+                          autoComplete="new-password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Nouveau mot de passe"
+                          className="w-full px-3.5 py-2.5 pr-10 text-sm bg-white border border-[#D6CEBE] rounded-lg focus:outline-none focus:border-[#9C5432]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword((v) => !v)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#78716C] hover:text-[#1C1917] p-1 cursor-pointer"
+                          title={showNewPassword ? 'Masquer' : 'Afficher'}
+                        >
+                          {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold uppercase tracking-wider text-[#57534E]">
+                        Confirmer le mot de passe
+                      </label>
+                      <input
+                        type={showNewPassword ? 'text' : 'password'}
+                        required
+                        minLength={6}
+                        autoComplete="new-password"
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        placeholder="Confirmez le mot de passe"
+                        className="w-full px-3.5 py-2.5 text-sm bg-white border border-[#D6CEBE] rounded-lg focus:outline-none focus:border-[#9C5432]"
+                      />
+                    </div>
+                  </div>
+
+                  {passwordFeedback && (
+                    <p
+                      className={`text-xs font-medium px-3 py-2 rounded-lg border ${
+                        passwordFeedback.type === 'success'
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                          : 'bg-rose-50 text-rose-700 border-rose-200'
+                      }`}
+                    >
+                      {passwordFeedback.message}
+                    </p>
+                  )}
+
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={isUpdatingPassword}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1C1917] hover:bg-[#9C5432] disabled:opacity-60 text-white text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors cursor-pointer shadow-sm"
+                    >
+                      {isUpdatingPassword ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <KeyRound className="w-3.5 h-3.5" />
+                      )}
+                      <span>{isUpdatingPassword ? 'Mise à jour...' : 'Mettre à jour le mot de passe'}</span>
+                    </button>
+                  </div>
+                </form>
 
                 <div className="p-6 rounded-xl border border-amber-200 bg-amber-50/70 space-y-4">
                   <div className="flex items-start gap-3">
